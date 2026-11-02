@@ -1,12 +1,13 @@
 'use client';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
-  CHART_TYPES, renderChart, samplesFor, checkContrast,
+  CHART_TYPES, renderChart, samplesFor, checkContrast, type ChartReference,
 } from '@/lib/charts';
 import { fetchBrandFromUrl } from '@/lib/engine/themes/brand.js';
 import { withAnnotations, Annotation } from '@/lib/annotations';
 import { FileDrop } from './FileDrop';
 import { AnnotationLayer } from './AnnotationLayer';
+import ReferenceLayer from './ReferenceLayer';
 import { shareUrl, readSharedState } from '@/lib/shareState';
 import { Lang, t, chartName } from '@/lib/i18n';
 
@@ -23,6 +24,14 @@ interface Block {
   cumulative: boolean;
   legend: string;
   annotations: Annotation[];
+  // —— 交互叠加层（对标 Studio：可拖动 / 可开关的参考线、网格、趋势、误差、四分位）——
+  references: ChartReference[];
+  gridMajor: boolean;
+  trendShow: boolean;
+  trendType: 'linear' | 'poly2';
+  trendCi: boolean;
+  errorBars: boolean;
+  quartileBand: boolean;
 }
 
 const STD_KEYS = ['gen', 'iso', 'iatf', 'ppap'] as const;
@@ -81,6 +90,7 @@ function ChartBlock({
   dragging: boolean;
 }) {
   const isFish = block.type === 'fishbone';
+  const blockRef = useRef<HTMLDivElement>(null);
   const result = useMemo(() => renderChart({
     type: block.type as any,
     csv: isFish ? '' : block.csv,
@@ -95,7 +105,12 @@ function ChartBlock({
     dataLabels: block.dataLabels,
     cumulative: block.cumulative,
     legend: block.legend as any,
-  }), [block.type, block.csv, block.fish, block.title, accent, accent2, font, block.usl, block.lsl, lang, block.showTitle, block.dataLabels, block.cumulative, block.legend]);
+    references: block.references,
+    gridlines: { major: block.gridMajor, minor: false },
+    trend: block.trendShow ? { show: true, type: block.trendType, ci: block.trendCi } : null,
+    errorBars: block.errorBars,
+    quartileBand: block.quartileBand,
+  }), [block.type, block.csv, block.fish, block.title, accent, accent2, font, block.usl, block.lsl, lang, block.showTitle, block.dataLabels, block.cumulative, block.legend, block.references, block.gridMajor, block.trendShow, block.trendType, block.trendCi, block.errorBars, block.quartileBand]);
 
   const bakedSvg = useMemo(() => withAnnotations(result.svg || '', block.annotations), [result.svg, block.annotations]);
 
@@ -176,6 +191,62 @@ function ChartBlock({
               </select>
             </span>
           )}
+
+          {/* 交互叠加层：可拖动 / 可开关的参考线 + 网格 / 趋势 / 误差 / 四分位开关 */}
+          <div className="ref-section">
+            <h4 className="ref-h">{t(lang, 'canvas.refH')}</h4>
+            <div className="row ref-toggles">
+              <label className="chk"><input type="checkbox" checked={block.gridMajor} onChange={(e) => onPatch(block.id, { gridMajor: e.target.checked })} /> {t(lang, 'canvas.gridMajor')}</label>
+              {(['line', 'scatter'].includes(block.type)) && (
+                <label className="chk"><input type="checkbox" checked={block.trendShow} onChange={(e) => onPatch(block.id, { trendShow: e.target.checked })} /> {t(lang, 'canvas.trend')}</label>
+              )}
+              {block.trendShow && (
+                <>
+                  <select value={block.trendType} onChange={(e) => onPatch(block.id, { trendType: e.target.value as 'linear' | 'poly2' })}>
+                    <option value="linear">{t(lang, 'canvas.trendLinear')}</option>
+                    <option value="poly2">{t(lang, 'canvas.trendPoly')}</option>
+                  </select>
+                  <label className="chk"><input type="checkbox" checked={block.trendCi} onChange={(e) => onPatch(block.id, { trendCi: e.target.checked })} /> {t(lang, 'canvas.trendCi')}</label>
+                </>
+              )}
+              {block.type === 'bar' && (
+                <label className="chk"><input type="checkbox" checked={block.errorBars} onChange={(e) => onPatch(block.id, { errorBars: e.target.checked })} /> {t(lang, 'canvas.errorBars')}</label>
+              )}
+              {(['line', 'scatter', 'pareto', 'capability'].includes(block.type)) && (
+                <label className="chk"><input type="checkbox" checked={block.quartileBand} onChange={(e) => onPatch(block.id, { quartileBand: e.target.checked })} /> {t(lang, 'canvas.quartile')}</label>
+              )}
+            </div>
+            <div className="col">
+              <button className="btn btn-ghost" type="button" onClick={() => onPatch(block.id, { references: [...block.references, { id: 'r' + Date.now().toString(36), axis: 'y', value: (result.plot?.yMin ?? 0) + ((result.plot?.yMax ?? 1) - (result.plot?.yMin ?? 0)) / 2, label: t(lang, 'canvas.refLabelDef'), color: '#F5803E', dashed: true, width: 1.5, show: true }] })}>
+                ＋ {t(lang, 'canvas.refAdd')}
+              </button>
+              {block.references.length === 0 && <div className="mini">{t(lang, 'canvas.refEmpty')}</div>}
+              {block.references.map((r) => (
+                <div className="ref-item" key={r.id}>
+                  <div className="ref-row">
+                    <label className="chk"><input type="checkbox" checked={r.show !== false} onChange={(e) => onPatch(block.id, { references: block.references.map((x) => x.id === r.id ? { ...x, show: e.target.checked } : x) })} /> {t(lang, 'canvas.refShow')}</label>
+                    <span className="legend-sel">
+                      <span className="lbl">{t(lang, 'canvas.refAxis')}</span>
+                      <select value={r.axis} onChange={(e) => onPatch(block.id, { references: block.references.map((x) => x.id === r.id ? { ...x, axis: e.target.value as 'x' | 'y' } : x) })}>
+                        <option value="y">{t(lang, 'canvas.refAxisY')}</option>
+                        <option value="x">{t(lang, 'canvas.refAxisX')}</option>
+                      </select>
+                    </span>
+                    <input className="ref-val" type="number" value={Number(r.value.toFixed(3))} onChange={(e) => onPatch(block.id, { references: block.references.map((x) => x.id === r.id ? { ...x, value: Number(e.target.value) } : x) })} />
+                    <label className="chk"><input type="checkbox" checked={!!r.dashed} onChange={(e) => onPatch(block.id, { references: block.references.map((x) => x.id === r.id ? { ...x, dashed: e.target.checked } : x) })} /> {t(lang, 'canvas.refDashed')}</label>
+                    <button className="mini-btn del" type="button" title={t(lang, 'canvas.refDel')} onClick={() => onPatch(block.id, { references: block.references.filter((x) => x.id !== r.id) })}>✕</button>
+                  </div>
+                  <div className="ref-row">
+                    <input className="ref-text" value={r.label || ''} placeholder={t(lang, 'canvas.refLabel')} onChange={(e) => onPatch(block.id, { references: block.references.map((x) => x.id === r.id ? { ...x, label: e.target.value } : x) })} />
+                    <input className="ref-color" type="color" value={r.color || '#F5803E'} onChange={(e) => onPatch(block.id, { references: block.references.map((x) => x.id === r.id ? { ...x, color: e.target.value } : x) })} />
+                    {r.axis === 'y' && (
+                      <input className="ref-val" type="number" value={r.value2 != null ? Number(r.value2.toFixed(3)) : ''} placeholder={t(lang, 'canvas.refBand')} onChange={(e) => onPatch(block.id, { references: block.references.map((x) => x.id === r.id ? { ...x, value2: e.target.value === '' ? undefined : Number(e.target.value) } : x) })} />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -183,12 +254,21 @@ function ChartBlock({
           {result.error ? <div className="err">⚠ {result.error}</div> : (
             <AnnotationLayer
               svg={bakedSvg}
+              svgRef={blockRef}
               annotations={block.annotations}
               onChange={(list) => onPatch(block.id, { annotations: list })}
               addLabel={t(lang, 'studio.addCallout')}
               hintLabel={t(lang, 'studio.calloutHint')}
               textLabel={t(lang, 'studio.calloutText')}
               delLabel={t(lang, 'studio.calloutDel')}
+              overlay={
+                <ReferenceLayer
+                  chartRef={blockRef}
+                  plot={result.plot}
+                  references={block.references}
+                  onChange={(refs) => onPatch(block.id, { references: refs })}
+                />
+              }
             />
           )}
         </div>
@@ -230,6 +310,13 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
         showTitle: b.showTitle !== false, dataLabels: b.dataLabels !== false,
         cumulative: b.cumulative !== false,
         legend: b.legend || 'none', annotations: Array.isArray(b.annotations) ? b.annotations : [],
+        references: Array.isArray(b.references) ? b.references : [],
+        gridMajor: b.gridMajor !== false,
+        trendShow: b.trendShow === true,
+        trendType: b.trendType === 'poly2' ? 'poly2' : 'linear',
+        trendCi: b.trendCi === true,
+        errorBars: b.errorBars === true,
+        quartileBand: b.quartileBand === true,
       })));
     }
   }, []);
@@ -244,6 +331,9 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
           dataLabels: b.dataLabels,
           cumulative: b.cumulative,
           legend: b.legend, annotations: b.annotations,
+          references: b.references, gridMajor: b.gridMajor,
+          trendShow: b.trendShow, trendType: b.trendType, trendCi: b.trendCi,
+          errorBars: b.errorBars, quartileBand: b.quartileBand,
         })),
       });
       if (navigator.clipboard?.writeText) {
@@ -275,6 +365,8 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
       cumulative: true,
       legend: LEGEND_TYPES.includes(addType) ? 'right' : 'none',
       annotations: [],
+      references: [], gridMajor: true, trendShow: false, trendType: 'linear',
+      trendCi: false, errorBars: false, quartileBand: false,
     };
     setBlocks((bs) => [...bs, b]);
   }
@@ -342,6 +434,11 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
           dataLabels: b.dataLabels,
           cumulative: b.cumulative,
           legend: b.legend as any,
+          references: b.references,
+          gridlines: { major: b.gridMajor, minor: false },
+          trend: b.trendShow ? { show: true, type: b.trendType, ci: b.trendCi } : null,
+          errorBars: b.errorBars,
+          quartileBand: b.quartileBand,
         });
         if (!r.svg) continue;
         const baked = withAnnotations(r.svg, b.annotations);
