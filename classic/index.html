@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChartForge · 图表工坊 — 编辑级矢量图表 SaaS</title>
+  <link rel="stylesheet" href="styles/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◧</span>
+      <div>
+        <div class="title">ChartForge · 图表工坊</div>
+        <div class="sub">编辑级矢量图表 · 多主题 · 品牌一致</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="hint">贴数据 → 选图 → 换风格 → 导出 SVG/PNG</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 左侧控制面板 -->
+    <aside class="panel">
+      <section class="block">
+        <label class="lbl">图表类型</label>
+        <select id="chartType">
+          <option value="pareto">柏拉图 Pareto</option>
+          <option value="bar">柱状图 Bar</option>
+          <option value="scatter">散布图 Scatter</option>
+          <option value="histogram">直方图 Histogram</option>
+          <option value="control">控制图 Control (I-MR)</option>
+          <option value="line">折线图 Line</option>
+          <option value="fishbone">鱼骨图 Fishbone</option>
+        </select>
+        <button id="autoBtn" class="btn ghost">⚡ 智能推荐</button>
+      </section>
+
+      <section class="block">
+        <label class="lbl">数据输入（CSV / 逗号 / 制表符，首行表头）</label>
+        <textarea id="csvInput" rows="8" spellcheck="false" placeholder="不良项目,频数&#10;虚焊,42&#10;漏件,25"></textarea>
+        <div id="fishInputWrap" class="hidden">
+          <label class="lbl">鱼骨图结构（JSON）</label>
+          <textarea id="fishInput" rows="8" spellcheck="false" placeholder='{"effect":"结果","bones":[{"category":"人","causes":["..."]}]}'></textarea>
+        </div>
+        <div class="row">
+          <button id="sampleBtn" class="btn">载入示例</button>
+          <button id="clearBtn" class="btn ghost">清空</button>
+        </div>
+      </section>
+
+      <section class="block">
+        <label class="lbl">标题</label>
+        <input id="titleInput" type="text" placeholder="图表标题" />
+        <div class="row3">
+          <div><label class="mini">USL</label><input id="uslInput" type="text" placeholder="规格上限" /></div>
+          <div><label class="mini">LSL</label><input id="lslInput" type="text" placeholder="规格下限" /></div>
+          <div><label class="mini">分箱数</label><input id="binsInput" type="text" placeholder="auto" /></div>
+        </div>
+      </section>
+
+      <section class="block">
+        <label class="lbl">主题 / 风格</label>
+        <select id="themeSelect">
+          <option value="light">浅色 Light</option>
+          <option value="dark">深色 Dark</option>
+          <option value="academic">学术 Academic</option>
+          <option value="business">商务 Business</option>
+          <option value="brand">自定义品牌 Brand</option>
+        </select>
+        <div id="brandWrap" class="brand-row hidden">
+          <div><label class="mini">主色</label><input id="accentInput" type="color" value="#2F6FED" /></div>
+          <div><label class="mini">辅色</label><input id="accent2Input" type="color" value="#F5803E" /></div>
+          <div>
+            <label class="mini">字体</label>
+            <select id="fontSelect">
+              <option value="'Inter','Helvetica Neue',Arial,sans-serif">无衬线</option>
+              <option value="'Georgia','Times New Roman',serif">衬线</option>
+              <option value="'Segoe UI','Helvetica Neue',Arial,sans-serif">Segoe</option>
+            </select>
+          </div>
+          <button id="brandUrlBtn" class="btn ghost small">从网址提取</button>
+          <input id="brandUrlInput" type="text" placeholder="https://your-company.com" />
+          <div id="contrastMsg" class="contrast"></div>
+        </div>
+      </section>
+
+      <section class="block">
+        <label class="lbl">导出</label>
+        <div class="row">
+          <button id="svgBtn" class="btn primary">⬇ SVG（矢量）</button>
+          <button id="pngBtn" class="btn">⬇ PNG（2×）</button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- 右侧预览 -->
+    <section class="preview">
+      <div id="recoMsg" class="reco"></div>
+      <div id="chartHost" class="chart-host"></div>
+      <div id="errMsg" class="err"></div>
+    </section>
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

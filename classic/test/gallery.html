@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>ChartForge 全图型画廊（自检用）</title>
+  <style>
+    body { font-family: 'Inter','Helvetica Neue',Arial,'PingFang SC',sans-serif; margin: 24px; background: #f4f6fb; }
+    h1 { font-size: 18px; }
+    .card { background: #fff; border: 1px solid #e3e7ef; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+    .card h2 { font-size: 14px; color: #6b7280; margin: 0 0 8px; }
+    .card svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <h1>ChartForge · 7 类图型逐张自检</h1>
+  <div id="host"></div>
+  <script type="module">
+    import { THEMES, makeBrandTheme } from '../src/themes/themes.js';
+    import { renderPareto } from '../src/charts/pareto.js';
+    import { renderBar } from '../src/charts/bar.js';
+    import { renderScatter } from '../src/charts/scatter.js';
+    import { renderHistogram } from '../src/charts/histogram.js';
+    import { renderControl } from '../src/charts/controlChart.js';
+    import { renderLine } from '../src/charts/line.js';
+    import { renderFishbone } from '../src/charts/fishbone.js';
+
+    const host = document.getElementById('host');
+    const themes = [THEMES.light, THEMES.dark, THEMES.academic, THEMES.business, makeBrandTheme({ accent: '#7c3aed', accent2: '#059669' })];
+
+    const cases = [
+      ['柏拉图 Pareto', (t) => renderPareto({ categories: ['虚焊','漏件','偏移','少锡','其他'], values: [42,25,15,10,8] }, t, { subtitle: '不良项目频数与累计占比' })],
+      ['柱状图 Bar（水平）', (t) => renderBar({ categories: ['华东','华南','华北','西部'], values: [320,280,210,150] }, t, { horizontal: true })],
+      ['散布图 Scatter', (t) => renderScatter([30,35,40,45,50,55,60,65,70],[1.2,1.5,2.0,2.4,3.1,3.6,4.5,5.0,5.8], t, { xLabel: '相对湿度(%)', yLabel: '虚焊不良率(%)' })],
+      ['直方图 Histogram（含规格限）', (t) => renderHistogram([10.02,10.05,9.98,10.01,10.03,9.97,10.00,10.04,9.99,10.02,10.06,9.96,10.01,10.03,9.98,10.00,10.05,9.99,10.02,10.04], t, { usl: 10.10, lsl: 9.90 })],
+      ['控制图 Control (I-MR)', (t) => renderControl([10.02,10.05,9.98,10.01,10.03,9.97,10.00,10.42,9.99,10.02,10.06,9.96,10.01,10.03,9.98,10.00,10.05,9.99,10.02,10.04], t)],
+      ['折线图 Line', (t) => renderLine([{x:1,y:120},{x:2,y:135},{x:3,y:148},{x:4,y:160},{x:5,y:155},{x:6,y:172},{x:7,y:180},{x:8,y:176},{x:9,y:190},{x:10,y:205}], t)],
+      ['鱼骨图 Fishbone', (t) => renderFishbone({ effect: '焊接不良率偏高', bones: [
+        {category:'人', causes:['培训不足','疲劳作业']},
+        {category:'机', causes:['烙铁温度漂移','夹具磨损']},
+        {category:'料', causes:['焊锡含杂质','PCB 氧化']},
+        {category:'法', causes:['参数设置错误','工艺文件缺失']},
+        {category:'环', causes:['湿度偏高','静电干扰']},
+        {category:'测', causes:['量具未校准','抽检方案不当']}
+      ] }, t)],
+    ];
+
+    // 每张图用第 1 个主题渲染一次；柏拉图额外用全部 5 套主题各渲染一次，验证主题系统
+    cases.forEach(([name, fn]) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<h2>${name}</h2>` + fn(themes[0]);
+      host.appendChild(card);
+    });
+    const tcard = document.createElement('div');
+    tcard.className = 'card';
+    tcard.innerHTML = '<h2>主题系统：同一柏拉图 × 5 套主题</h2>' + themes.map((t) => renderPareto({ categories: ['虚焊','漏件','偏移','少锡'], values: [42,25,15,10] }, t, { title: t.name })).join('<hr/>');
+    host.appendChild(tcard);
+  </script>
+</body>
+</html>

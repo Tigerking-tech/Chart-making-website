@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Local project / tooling data
+.codebuddy/
+
+# Separate SaaS boilerplate (nested git repo + local .env secrets)
+creem-saas/
+
+# Binary artifacts / screenshots / sample data
+*.png
+*.svg
+*.xlsx
+*.zip
+
+# Logs
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+# Env
+.env
+.env.local
+.env*.local
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Scratch / test scripts
+engine_test.mjs
