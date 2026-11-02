@@ -20,6 +20,7 @@ interface Block {
   lsl: string;
   showTitle: boolean;
   dataLabels: boolean;
+  cumulative: boolean;
   legend: string;
   annotations: Annotation[];
 }
@@ -92,8 +93,9 @@ function ChartBlock({
     lang,
     showTitle: block.showTitle,
     dataLabels: block.dataLabels,
+    cumulative: block.cumulative,
     legend: block.legend as any,
-  }), [block.type, block.csv, block.fish, block.title, accent, accent2, font, block.usl, block.lsl, lang, block.showTitle, block.dataLabels, block.legend]);
+  }), [block.type, block.csv, block.fish, block.title, accent, accent2, font, block.usl, block.lsl, lang, block.showTitle, block.dataLabels, block.cumulative, block.legend]);
 
   const bakedSvg = useMemo(() => withAnnotations(result.svg || '', block.annotations), [result.svg, block.annotations]);
 
@@ -161,6 +163,9 @@ function ChartBlock({
           {DATA_LABEL_TYPES.includes(block.type) && (
             <label className="chk"><input type="checkbox" checked={block.dataLabels} onChange={(e) => onPatch(block.id, { dataLabels: e.target.checked })} /> {t(lang, 'canvas.dataLabels')}</label>
           )}
+          {block.type === 'pareto' && (
+            <label className="chk"><input type="checkbox" checked={block.cumulative} onChange={(e) => onPatch(block.id, { cumulative: e.target.checked })} /> {t(lang, 'canvas.cumLine')}</label>
+          )}
           {LEGEND_TYPES.includes(block.type) && (
             <span className="legend-sel">
               <span className="lbl">{t(lang, 'canvas.legend')}</span>
@@ -223,6 +228,7 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
         id: b.id || uid(), type: b.type || 'pareto', csv: b.csv || '',
         fish: b.fish || '', title: b.title || '', usl: b.usl || '', lsl: b.lsl || '',
         showTitle: b.showTitle !== false, dataLabels: b.dataLabels !== false,
+        cumulative: b.cumulative !== false,
         legend: b.legend || 'none', annotations: Array.isArray(b.annotations) ? b.annotations : [],
       })));
     }
@@ -234,8 +240,10 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
         reportTitle, orgName, accent, accent2, font, brandUrl, stdKey,
         blocks: blocks.map((b) => ({
           type: b.type, csv: b.csv, fish: b.fish, title: b.title,
-          usl: b.usl, lsl: b.lsl, showTitle: b.showTitle,
-          dataLabels: b.dataLabels, legend: b.legend, annotations: b.annotations,
+          usl: b.usl, lsl: b.lsl,           showTitle: b.showTitle,
+          dataLabels: b.dataLabels,
+          cumulative: b.cumulative,
+          legend: b.legend, annotations: b.annotations,
         })),
       });
       if (navigator.clipboard?.writeText) {
@@ -264,6 +272,7 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
       usl: '', lsl: '',
       showTitle: true,
       dataLabels: true,
+      cumulative: true,
       legend: LEGEND_TYPES.includes(addType) ? 'right' : 'none',
       annotations: [],
     };
@@ -331,6 +340,7 @@ export function CanvasStudio({ lang }: { lang: Lang }) {
           lang,
           showTitle: b.showTitle,
           dataLabels: b.dataLabels,
+          cumulative: b.cumulative,
           legend: b.legend as any,
         });
         if (!r.svg) continue;

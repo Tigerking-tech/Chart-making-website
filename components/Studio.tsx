@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CHART_TYPES, renderChart, THEME_LIST,
   checkContrast, recommend, samplesFor,
+  type ChartReference,
 } from '@/lib/charts';
 import { downloadSVG, downloadPNG } from '@/lib/engine/export/exporter.js';
 import { fetchBrandFromUrl } from '@/lib/engine/themes/brand.js';
@@ -10,6 +11,7 @@ import { parseTable } from '@/lib/engine/data/parser.js';
 import { withAnnotations, Annotation } from '@/lib/annotations';
 import { FileDrop } from './FileDrop';
 import { AnnotationLayer } from './AnnotationLayer';
+import ReferenceLayer from './ReferenceLayer';
 import { shareUrl, readSharedState } from '@/lib/shareState';
 import { Lang, t, chartName, groupName } from '@/lib/i18n';
 
@@ -31,6 +33,7 @@ export function Studio({ lang }: { lang: Lang }) {
   const [bins, setBins] = useState<string>('');
   const [showTitle, setShowTitle] = useState<boolean>(true);
   const [dataLabels, setDataLabels] = useState<boolean>(true);
+  const [cumulative, setCumulative] = useState<boolean>(true);
   const [legend, setLegend] = useState<string>('right');
   const [brandUrl, setBrandUrl] = useState<string>('');
   const [contrastMsg, setContrastMsg] = useState<string>('');
@@ -39,6 +42,15 @@ export function Studio({ lang }: { lang: Lang }) {
   const [error, setError] = useState<string>('');
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [shareMsg, setShareMsg] = useState<string>('');
+  // —— 交互叠加层状态（对标竞品：可拖动 / 可开关的线元素）——
+  const [references, setReferences] = useState<ChartReference[]>([]);
+  const [gridMajor, setGridMajor] = useState<boolean>(true);
+  const [trendShow, setTrendShow] = useState<boolean>(false);
+  const [trendType, setTrendType] = useState<'linear' | 'poly2'>('linear');
+  const [trendCi, setTrendCi] = useState<boolean>(false);
+  const [errorBars, setErrorBars] = useState<boolean>(false);
+  const [quartileBand, setQuartileBand] = useState<boolean>(false);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   // 打开分享链接时，从 URL 还原整份图表配置（lang 由当前页面 cookie 决定，不覆盖）。
   useEffect(() => {
@@ -57,8 +69,16 @@ export function Studio({ lang }: { lang: Lang }) {
     if (s.bins !== undefined) setBins(String(s.bins ?? ''));
     if (typeof s.showTitle === 'boolean') setShowTitle(s.showTitle);
     if (typeof s.dataLabels === 'boolean') setDataLabels(s.dataLabels);
+    if (typeof s.cumulative === 'boolean') setCumulative(s.cumulative);
     if (s.legend) setLegend(s.legend);
     if (Array.isArray(s.annotations)) setAnnotations(s.annotations);
+    if (Array.isArray(s.references)) setReferences(s.references as ChartReference[]);
+    if (typeof s.gridMajor === 'boolean') setGridMajor(s.gridMajor);
+    if (typeof s.trendShow === 'boolean') setTrendShow(s.trendShow);
+    if (s.trendType) setTrendType(s.trendType);
+    if (typeof s.trendCi === 'boolean') setTrendCi(s.trendCi);
+    if (typeof s.errorBars === 'boolean') setErrorBars(s.errorBars);
+    if (typeof s.quartileBand === 'boolean') setQuartileBand(s.quartileBand);
     setRecoMsg('');
   }, []);
 
@@ -77,8 +97,14 @@ export function Studio({ lang }: { lang: Lang }) {
     bins: bins ? Number(bins) : 0,
     showTitle,
     dataLabels,
+    cumulative,
     legend: legend as any,
-  }), [type, csv, fish, title, themeId, accent, accent2, font, usl, lsl, bins, showTitle, dataLabels, legend]);
+    references,
+    gridlines: { major: gridMajor, minor: false },
+    trend: trendShow ? { show: true, type: trendType, ci: trendCi } : null,
+    errorBars,
+    quartileBand,
+  }), [type, csv, fish, title, themeId, accent, accent2, font, usl, lsl, bins, showTitle, dataLabels, cumulative, legend, references, gridMajor, trendShow, trendType, trendCi, errorBars, quartileBand]);
 
   const liveSvg = result.svg || '';
   const liveError = result.error;
@@ -90,8 +116,9 @@ export function Studio({ lang }: { lang: Lang }) {
         type, csv, fish, title, themeId, accent, accent2, font,
         usl: usl ? Number(usl) : null, lsl: lsl ? Number(lsl) : null,
         bins: bins ? Number(bins) : 0,
-        showTitle, dataLabels, legend,
+        showTitle, dataLabels, cumulative, legend,
         annotations,
+        references, gridMajor, trendShow, trendType, trendCi, errorBars, quartileBand,
       });
       if (navigator.clipboard?.writeText) {
         navigator.clipboard.writeText(url).then(
@@ -197,6 +224,19 @@ export function Studio({ lang }: { lang: Lang }) {
             {DATA_LABEL_TYPES.includes(type) && (
               <label className="chk"><input type="checkbox" checked={dataLabels} onChange={(e) => setDataLabels(e.target.checked)} /> {t(lang, 'canvas.dataLabels')}</label>
             )}
+            {type === 'pareto' && (
+              <label className="chk"><input type="checkbox" checked={cumulative} onChange={(e) => setCumulative(e.target.checked)} /> {t(lang, 'canvas.cumLine')}</label>
+            )}
+            <label className="chk"><input type="checkbox" checked={gridMajor} onChange={(e) => setGridMajor(e.target.checked)} /> {t(lang, 'canvas.gridMajor')}</label>
+            {['line', 'scatter'].includes(type) && (
+              <label className="chk"><input type="checkbox" checked={trendShow} onChange={(e) => setTrendShow(e.target.checked)} /> {t(lang, 'canvas.trend')}</label>
+            )}
+            {type === 'bar' && (
+              <label className="chk"><input type="checkbox" checked={errorBars} onChange={(e) => setErrorBars(e.target.checked)} /> {t(lang, 'canvas.errorBars')}</label>
+            )}
+            {['line', 'scatter', 'capability'].includes(type) && (
+              <label className="chk"><input type="checkbox" checked={quartileBand} onChange={(e) => setQuartileBand(e.target.checked)} /> {t(lang, 'canvas.quartile')}</label>
+            )}
             {LEGEND_TYPES.includes(type) && (
               <span className="legend-sel">
                 <span className="lbl">{t(lang, 'canvas.legend')}</span>
@@ -207,6 +247,50 @@ export function Studio({ lang }: { lang: Lang }) {
                 </select>
               </span>
             )}
+          </div>
+          {trendShow && ['line', 'scatter'].includes(type) && (
+            <div className="row" style={{ marginTop: 6 }}>
+              <span className="legend-sel">
+                <span className="lbl">{t(lang, 'canvas.trendType')}</span>
+                <select value={trendType} onChange={(e) => setTrendType(e.target.value as any)}>
+                  <option value="linear">{t(lang, 'canvas.trendLinear')}</option>
+                  <option value="poly2">{t(lang, 'canvas.trendPoly')}</option>
+                </select>
+              </span>
+              <label className="chk"><input type="checkbox" checked={trendCi} onChange={(e) => setTrendCi(e.target.checked)} /> {t(lang, 'canvas.trendCi')}</label>
+            </div>
+          )}
+
+          <h3>{t(lang, 'canvas.refH')}</h3>
+          <div className="col">
+            <button className="btn btn-ghost" type="button" onClick={() => setReferences((rs) => [...rs, { id: 'r' + Date.now().toString(36), axis: 'y', value: (result.plot?.yMin ?? 0) + ((result.plot?.yMax ?? 1) - (result.plot?.yMin ?? 0)) / 2, label: t(lang, 'canvas.refLabelDef'), color: '#F5803E', dashed: true, width: 1.5, show: true }])}>
+              ＋ {t(lang, 'canvas.refAdd')}
+            </button>
+            {references.length === 0 && <div className="mini">{t(lang, 'canvas.refEmpty')}</div>}
+            {references.map((r, i) => (
+              <div className="ref-item" key={r.id}>
+                <div className="ref-row">
+                  <label className="chk"><input type="checkbox" checked={r.show !== false} onChange={(e) => setReferences((rs) => rs.map((x) => x.id === r.id ? { ...x, show: e.target.checked } : x))} /> {t(lang, 'canvas.refShow')}</label>
+                  <span className="legend-sel">
+                    <span className="lbl">{t(lang, 'canvas.refAxis')}</span>
+                    <select value={r.axis} onChange={(e) => setReferences((rs) => rs.map((x) => x.id === r.id ? { ...x, axis: e.target.value as any } : x))}>
+                      <option value="y">{t(lang, 'canvas.refAxisY')}</option>
+                      <option value="x">{t(lang, 'canvas.refAxisX')}</option>
+                    </select>
+                  </span>
+                  <input className="ref-val" type="number" value={Number(r.value.toFixed(3))} onChange={(e) => setReferences((rs) => rs.map((x) => x.id === r.id ? { ...x, value: Number(e.target.value) } : x))} />
+                  <label className="chk"><input type="checkbox" checked={!!r.dashed} onChange={(e) => setReferences((rs) => rs.map((x) => x.id === r.id ? { ...x, dashed: e.target.checked } : x))} /> {t(lang, 'canvas.refDashed')}</label>
+                  <button className="mini-btn del" type="button" title={t(lang, 'canvas.refDel')} onClick={() => setReferences((rs) => rs.filter((x) => x.id !== r.id))}>✕</button>
+                </div>
+                <div className="ref-row">
+                  <input className="ref-text" value={r.label || ''} placeholder={t(lang, 'canvas.refLabel')} onChange={(e) => setReferences((rs) => rs.map((x) => x.id === r.id ? { ...x, label: e.target.value } : x))} />
+                  <input className="ref-color" type="color" value={r.color || '#F5803E'} onChange={(e) => setReferences((rs) => rs.map((x) => x.id === r.id ? { ...x, color: e.target.value } : x))} />
+                  {r.axis === 'y' && (
+                    <input className="ref-val" type="number" value={r.value2 != null ? Number(r.value2.toFixed(3)) : ''} placeholder={t(lang, 'canvas.refBand')} onChange={(e) => setReferences((rs) => rs.map((x) => x.id === r.id ? { ...x, value2: e.target.value === '' ? undefined : Number(e.target.value) } : x))} />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
           <h3>{t(lang, 'studio.s4')}</h3>
@@ -257,6 +341,8 @@ export function Studio({ lang }: { lang: Lang }) {
                 hintLabel={t(lang, 'studio.calloutHint')}
                 textLabel={t(lang, 'studio.calloutText')}
                 delLabel={t(lang, 'studio.calloutDel')}
+                svgRef={chartRef}
+                overlay={<ReferenceLayer chartRef={chartRef} plot={result.plot} references={references} onChange={setReferences} />}
               />
             )}
           </div>

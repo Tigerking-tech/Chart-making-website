@@ -305,6 +305,20 @@ export function samplesFor(lang: 'zh' | 'en'): Record<ChartType, string> {
   return lang === 'en' ? SAMPLES_EN : SAMPLES;
 }
 
+/** 参考线 / 参考带（对标 Datawrapper / Tableau）：可开关、可拖动、可改样式。 */
+export interface ChartReference {
+  id: string;
+  axis: 'x' | 'y';
+  value: number;
+  value2?: number;
+  label?: string;
+  color?: string;
+  dashed?: boolean;
+  width?: number;
+  opacity?: number;
+  show?: boolean;
+}
+
 export interface RenderOptions {
   type: ChartType;
   csv?: string;
@@ -324,10 +338,37 @@ export interface RenderOptions {
   showTitle?: boolean;
   dataLabels?: boolean;
   legend?: 'right' | 'bottom' | 'none';
+  /** 帕累托图：是否显示累计 % 折线（黄线），默认 true */
+  cumulative?: boolean;
+  /** 参考线 / 参考带列表（可拖动、可开关） */
+  references?: ChartReference[];
+  /** 网格线开关：major 默认 true，minor 默认 false */
+  gridlines?: { major?: boolean; minor?: boolean };
+  /** 趋势线：show 是否显示，type 线性/二次，ci 是否显示置信区间带 */
+  trend?: { show?: boolean; type?: 'linear' | 'poly2'; ci?: boolean };
+  /** 误差线（当数据含 ± 值时显示） */
+  errorBars?: boolean;
+  /** 四分位带（中位数+四分位区间） */
+  quartileBand?: boolean;
+  /** 图例中被隐藏的系列名 */
+  hiddenSeries?: string[];
+  /** 是否启用交互式图例（点击隐藏系列） */
+  interactiveLegend?: boolean;
+}
+
+/** 渲染器返回的绘图区元数据，供 React 叠加层定位拖动把手与交互元素。 */
+export interface PlotMeta {
+  x: number; y: number; w: number; h: number;
+  xMin: number; xMax: number; yMin: number; yMax: number;
+  xType: 'linear' | 'category' | 'time';
+  yType: 'linear' | 'time';
+  series?: { name: string; color: string; shape: 'rect' | 'line' | 'circle' }[] | null;
+  aux?: any;
 }
 
 export interface RenderResult {
   svg?: string;
+  plot?: PlotMeta;
   error?: string;
   recommended?: { type: ChartType; reason: string };
 }
@@ -366,6 +407,14 @@ export function renderChart(opts: RenderOptions): RenderResult {
       showTitle: opts.showTitle !== false,
       dataLabels: opts.dataLabels !== false,
       legend: opts.legend || 'none',
+      cumulative: opts.cumulative !== false,
+      references: opts.references || [],
+      gridlines: opts.gridlines || { major: true, minor: false },
+      trend: opts.trend || null,
+      errorBars: !!opts.errorBars,
+      quartileBand: !!opts.quartileBand,
+      hiddenSeries: opts.hiddenSeries || [],
+      interactiveLegend: !!opts.interactiveLegend,
     };
 
     // 图型（节点+连线 / DSL 驱动）：直接调用对应渲染器，跳过 CSV 解析分支。
@@ -377,57 +426,57 @@ export function renderChart(opts: RenderOptions): RenderResult {
     const table = parseTable(opts.csv || '');
     if (!table.columns.length) return { error: '请先输入数据（CSV，首行为表头）' };
     const payload = buildPayload(table, opts.type);
-    let svg = '';
+    let rendered: any = '';
     switch (opts.type) {
-      case 'pareto': svg = renderPareto(payload, theme, o); break;
-      case 'bar': svg = renderBar(payload, theme, o); break;
-      case 'scatter': svg = renderScatter(payload.xs, payload.ys, theme, { ...o, xLabel: payload.xLabel, yLabel: payload.yLabel }); break;
-      case 'histogram': svg = renderHistogram(payload.values, theme, o); break;
-      case 'control': svg = renderControl(payload.values, theme, o); break;
+      case 'pareto': rendered = renderPareto(payload, theme, o); break;
+      case 'bar': rendered = renderBar(payload, theme, o); break;
+      case 'scatter': rendered = renderScatter(payload.xs, payload.ys, theme, { ...o, xLabel: payload.xLabel, yLabel: payload.yLabel }); break;
+      case 'histogram': rendered = renderHistogram(payload.values, theme, o); break;
+      case 'control': rendered = renderControl(payload.values, theme, o); break;
       case 'xbarR': {
         const v = numericColumns(table)[0].values.slice();
-        svg = renderXbarR(v, theme, { ...o, subgroup: opts.subgroup || 0 });
+        rendered = renderXbarR(v, theme, { ...o, subgroup: opts.subgroup || 0 });
         break;
       }
       case 'p': {
         const nums = numericColumns(table);
         const d = nums.length >= 3 ? nums[nums.length - 2].values.slice() : nums[0].values.slice();
         const sz = nums.length >= 2 ? nums[nums.length - 1].values.slice() : d.map(() => 100);
-        svg = renderP(d, sz, theme, o);
+        rendered = renderP(d, sz, theme, o);
         break;
       }
       case 'c': {
         const v = numericColumns(table)[0].values.slice();
-        svg = renderC(v, theme, o);
+        rendered = renderC(v, theme, o);
         break;
       }
       case 'capability': {
         const v = numericColumns(table)[0].values.slice();
-        svg = renderCapability(v, theme, { ...o, usl: opts.usl, lsl: opts.lsl });
+        rendered = renderCapability(v, theme, { ...o, usl: opts.usl, lsl: opts.lsl });
         break;
       }
-      case 'line': svg = renderLine(payload.points, theme, o); break;
+      case 'line': rendered = renderLine(payload.points, theme, o); break;
       case 'ewma':
       case 'cusum':
       case 'run': {
         const v = numericColumns(table)[0].values.slice();
-        if (opts.type === 'ewma') svg = renderEwma(v, theme, o);
-        else if (opts.type === 'cusum') svg = renderCusum(v, theme, o);
-        else svg = renderRun(v, theme, o);
+        if (opts.type === 'ewma') rendered = renderEwma(v, theme, o);
+        else if (opts.type === 'cusum') rendered = renderCusum(v, theme, o);
+        else rendered = renderRun(v, theme, o);
         break;
       }
       case 'np': {
         const nums = numericColumns(table);
         const d = nums.length >= 2 ? nums[nums.length - 2].values.slice() : nums[0].values.slice();
         const sz = nums.length >= 2 ? nums[nums.length - 1].values.slice() : d.map(() => 100);
-        svg = renderNp(d, sz, theme, o);
+        rendered = renderNp(d, sz, theme, o);
         break;
       }
       case 'u': {
         const nums = numericColumns(table);
         const c = nums[0].values.slice();
         const sz = nums.length >= 2 ? nums[nums.length - 1].values.slice() : c.map(() => 1);
-        svg = renderU(c, sz, theme, o);
+        rendered = renderU(c, sz, theme, o);
         break;
       }
       case 'msa': {
@@ -437,12 +486,19 @@ export function renderChart(opts: RenderOptions): RenderResult {
         const partCol = cats[1] || { values: nums[0].values.map((_, i) => String(i + 1)) };
         const valCol = nums[0];
         const data = valCol.values.map((v, i) => ({ op: String(opCol.values[i] ?? 'A'), part: String(partCol.values[i] ?? (i + 1)), val: v }));
-        svg = renderMsa(data, theme, o);
+        rendered = renderMsa(data, theme, o);
         break;
       }
       default: return { error: '未知图型' };
     }
-    return { svg };
+    const out: RenderResult = {};
+    if (rendered && typeof rendered === 'object' && rendered.svg) {
+      out.svg = rendered.svg;
+      if (rendered.plot) out.plot = rendered.plot;
+    } else {
+      out.svg = rendered;
+    }
+    return out;
   } catch (e: any) {
     return { error: e?.message || '渲染失败' };
   }

@@ -200,14 +200,36 @@ footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted)
 .legend-sel .lbl { margin-right: 2px; }
 .legend-sel select { padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-size: 12px; }
 
+/* 参考线 / 带编辑列表 */
+.ref-item { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.ref-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.ref-val { width: 84px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-size: 12px; }
+.ref-text { flex: 1 1 120px; min-width: 90px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font-size: 12px; }
+.ref-color { width: 30px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; }
+/* 参考线叠加层：把手本身可交互，其余区域让点击穿透到底层 SVG */
+.ref-layer { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+
+
 /* 文件拖入区 */
 .filedrop { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 9px 12px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 12.5px; cursor: pointer; transition: .15s; background: var(--bg); }
 .filedrop:hover, .filedrop.over { border-color: var(--accent); color: var(--accent); background: var(--bg-soft); }
 .filedrop svg { flex: none; }
 
 /* 标注层 */
-.anno-preview { cursor: crosshair; border-radius: 8px; }
+.anno-preview { position: relative; cursor: crosshair; border-radius: 8px; }
 .anno-preview > div { width: 100%; }
+/* 标注拖动手柄：叠在 SVG 红点上，鼠标 / 触摸均可按住拖动 */
+.anno-chip {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 24px; height: 24px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  z-index: 5; pointer-events: auto; opacity: .92;
+}
+.anno-chip:active { cursor: grabbing; opacity: 1; }
+@media print { .anno-chip { display: none; } }
 .anno-bar { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
 .anno-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .anno-item { display: flex; align-items: center; gap: 8px; }
