@@ -34,3 +34,6 @@ npm-debug.log*
 
 # Scratch / test scripts
 engine_test.mjs
+
+# TS incremental build info
+tsconfig.tsbuildinfo
