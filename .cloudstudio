@@ -1,4 +1,4 @@
 [[app]]
 name = "app"
 port = 3_000
-cmd = 'cd "/workspace" && PORT=3000 npx next start'
+cmd = 'cd "/workspace" && PORT=3000 npm run start'

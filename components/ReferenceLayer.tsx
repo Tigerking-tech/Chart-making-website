@@ -118,8 +118,8 @@ export default function ReferenceLayer({ chartRef, plot, references, onChange }:
   });
 
   return (
-    <svg viewBox={`0 0 ${vb.W} ${vb.H}`} width="100%" height="auto"
-         style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}
+    <svg viewBox={`0 0 ${vb.W} ${vb.H}`} width="100%" height="100%"
+         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}
          aria-hidden>
       {handles}
     </svg>
