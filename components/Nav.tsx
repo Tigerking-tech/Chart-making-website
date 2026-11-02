@@ -13,6 +13,7 @@ export function Nav({ lang }: { lang: Lang }) {
           <Link href="/report">{t(lang, 'nav.report')}</Link>
           <Link href="/gallery">{t(lang, 'nav.gallery')}</Link>
           <Link href="/canvas">{t(lang, 'nav.canvas')}</Link>
+          <Link href="/figures4papers">{t(lang, 'nav.paper')}</Link>
           <Link href="/pricing">{t(lang, 'nav.pricing')}</Link>
           <Link href="/#features">{t(lang, 'nav.features')}</Link>
         </div>
