@@ -37,7 +37,7 @@ import { renderKanban, renderUserJourney, renderServiceBlueprint, renderStoryMap
 import { renderExploded, renderAxonometricPlan } from './engine/charts/iso.js';
 import { renderSequence } from './engine/charts/sequence.js';
 // —— 论文级原创图型（多序列：分组柱状 / 误差折线 / 箱线）——
-import { renderGroupedBar, renderErrorLine, renderBoxplot } from './engine/charts/paperfigs.js';
+import { renderGroupedBar, renderErrorLine, renderBoxplot, renderStackedBar, renderViolin, renderECDF, renderBubble, renderDensity2D } from './engine/charts/paperfigs.js';
 import { numericColumns, categoricalColumns } from './engine/data/parser.js';
 
 export type ChartType =
@@ -53,8 +53,8 @@ export type ChartType =
   | 'timeline' | 'gantt' | 'er' | 'umlClass' | 'dbSchema' | 'sankey'
   | 'kanban' | 'userJourney' | 'serviceBlueprint' | 'storyMap'
   | 'exploded' | 'axonometricPlan' | 'sequence'
-  // —— 论文级原创图型（多序列）——
-  | 'groupedBar' | 'errorLine' | 'boxplot';
+  // —— 论文级原创图型 ——
+  | 'groupedBar' | 'errorLine' | 'boxplot' | 'stackedBar' | 'violin' | 'ecdf' | 'bubble' | 'density2d';
 
 export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: string; fishbone?: boolean }[] = [
   { id: 'pareto', label: '柏拉图 Pareto', group: '质量工具', gk: 'q' },
@@ -116,10 +116,15 @@ export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: str
   { id: 'exploded', label: '爆炸轴测图 Exploded', group: '轴测图', gk: 'isometric' },
   { id: 'axonometricPlan', label: '轴测平面图 Axonometric Plan', group: '轴测图', gk: 'isometric' },
   { id: 'sequence', label: '时序图 Sequence', group: '图型', gk: 'diagram' },
-  // —— 论文级原创图型（多序列）——
+  // —— 论文级原创图型 ——
   { id: 'groupedBar', label: '分组柱状图 Grouped Bar', group: '论文图表', gk: 'paperfig' },
   { id: 'errorLine', label: '误差折线图 Error Line', group: '论文图表', gk: 'paperfig' },
   { id: 'boxplot', label: '箱线图 Box Plot', group: '论文图表', gk: 'paperfig' },
+  { id: 'stackedBar', label: '堆叠柱状图 Stacked Bar', group: '论文图表', gk: 'paperfig' },
+  { id: 'violin', label: '小提琴图 Violin Plot', group: '论文图表', gk: 'paperfig' },
+  { id: 'ecdf', label: '经验累积分布 ECDF', group: '论文图表', gk: 'paperfig' },
+  { id: 'bubble', label: '气泡图 Bubble Chart', group: '论文图表', gk: 'paperfig' },
+  { id: 'density2d', label: '二维密度图 2D Density', group: '论文图表', gk: 'paperfig' },
 ];
 
 // 图型（节点+连线 / DSL 驱动）渲染器映射：在 renderChart 中早返回，避免进入 CSV 解析分支。
@@ -211,6 +216,11 @@ export const SAMPLES: Record<ChartType, string> = {
   groupedBar: `模型,准确率,召回率,F1\n基线,0.78,0.74,0.76\n方法A,0.86,0.83,0.84\n方法B,0.91,0.88,0.89\n方法C,0.94,0.92,0.93`,
   errorLine: `轮次,方法A,方法A误差,方法B,方法B误差\n10,0.55,0.04,0.50,0.05\n20,0.70,0.03,0.66,0.04\n30,0.80,0.03,0.78,0.03\n40,0.86,0.02,0.85,0.03\n50,0.90,0.02,0.89,0.02\n60,0.93,0.02,0.92,0.02`,
   boxplot: `组别,数值\n对照组,12.1\n对照组,11.8\n对照组,12.5\n对照组,11.5\n对照组,12.0\n对照组,13.0\n对照组,11.2\n实验组,15.2\n实验组,14.8\n实验组,16.1\n实验组,15.0\n实验组,15.6\n实验组,14.2\n实验组,16.5\n实验组,15.9`,
+  stackedBar: `季度,产品A,产品B,产品C\nQ1,120,80,40\nQ2,135,110,55\nQ3,148,130,70\nQ4,160,150,90`,
+  violin: `组别,数值\n对照组,12.1\n对照组,11.8\n对照组,12.5\n对照组,11.5\n对照组,12.0\n对照组,13.0\n对照组,11.2\n对照组,12.8\n对照组,11.9\n实验组,15.2\n实验组,14.8\n实验组,16.1\n实验组,15.0\n实验组,15.6\n实验组,14.2\n实验组,16.5\n实验组,15.9\n实验组,17.0\n实验组,14.6`,
+  ecdf: `基线,方法A,方法B\n0.72,0.85,0.80\n0.75,0.87,0.83\n0.70,0.84,0.81\n0.78,0.90,0.86\n0.73,0.88,0.82\n0.76,0.91,0.85\n0.71,0.86,0.79\n0.74,0.89,0.84`,
+  bubble: `地区,x,y,规模,类别\n华东,30,80,200,一类\n华北,45,60,120,一类\n华南,60,75,300,二类\n西南,20,40,90,二类\n东北,55,35,150,一类\n西北,70,55,80,三类\n华中,40,65,180,二类\n东南,50,85,260,三类`,
+  density2d: `温度,湿度\n22,55\n24,60\n23,58\n26,68\n28,72\n25,62\n30,80\n27,66\n29,75\n31,82\n24,57\n26,64\n33,88\n32,85\n28,70\n25,59\n30,78\n27,63\n34,90\n29,77\n23,56\n35,92\n31,84\n26,67\n28,73`,
 };
 
 export const DEFAULT_TITLES: Record<ChartType, string> = {
@@ -229,6 +239,8 @@ export const DEFAULT_TITLES: Record<ChartType, string> = {
   kanban: '看板', userJourney: '用户旅程', serviceBlueprint: '服务蓝图', storyMap: '故事地图',
   exploded: '爆炸轴测图', axonometricPlan: '轴测平面图', sequence: '时序图',
   groupedBar: '分组柱状图 Grouped Bar', errorLine: '误差折线图 Error Line', boxplot: '箱线图 Box Plot',
+  stackedBar: '堆叠柱状图 Stacked Bar', violin: '小提琴图 Violin Plot', ecdf: '经验累积分布 ECDF',
+  bubble: '气泡图 Bubble Chart', density2d: '二维密度图 2D Density',
 };
 
 // 英文默认标题
@@ -247,6 +259,7 @@ export const DEFAULT_TITLES_EN: Record<ChartType, string> = {
   kanban: 'Kanban', userJourney: 'User Journey', serviceBlueprint: 'Service Blueprint', storyMap: 'Story Map',
   exploded: 'Exploded Axonometric', axonometricPlan: 'Axonometric Plan', sequence: 'Sequence Diagram',
   groupedBar: 'Grouped Bar', errorLine: 'Error-bar Line', boxplot: 'Box Plot',
+  stackedBar: 'Stacked Bar', violin: 'Violin Plot', ecdf: 'ECDF', bubble: 'Bubble Chart', density2d: '2D Density',
 };
 
 // 英文示例数据：数值样本中英通用，带文案的样本翻译为英文。
@@ -315,6 +328,11 @@ export const SAMPLES_EN: Record<ChartType, string> = {
   groupedBar: `Model,Accuracy,Recall,F1\nBaseline,0.78,0.74,0.76\nMethodA,0.86,0.83,0.84\nMethodB,0.91,0.88,0.89\nMethodC,0.94,0.92,0.93`,
   errorLine: `Epoch,Model A,Model A SEM,Model B,Model B SEM\n10,0.55,0.04,0.50,0.05\n20,0.70,0.03,0.66,0.04\n30,0.80,0.03,0.78,0.03\n40,0.86,0.02,0.85,0.03\n50,0.90,0.02,0.89,0.02\n60,0.93,0.02,0.92,0.02`,
   boxplot: `Group,Value\nControl,12.1\nControl,11.8\nControl,12.5\nControl,11.5\nControl,12.0\nControl,13.0\nControl,11.2\nExp,15.2\nExp,14.8\nExp,16.1\nExp,15.0\nExp,15.6\nExp,14.2\nExp,16.5\nExp,15.9`,
+  stackedBar: `Quarter,Product A,Product B,Product C\nQ1,120,80,40\nQ2,135,110,55\nQ3,148,130,70\nQ4,160,150,90`,
+  violin: `Group,Value\nControl,12.1\nControl,11.8\nControl,12.5\nControl,11.5\nControl,12.0\nControl,13.0\nControl,11.2\nControl,12.8\nControl,11.9\nExp,15.2\nExp,14.8\nExp,16.1\nExp,15.0\nExp,15.6\nExp,14.2\nExp,16.5\nExp,15.9\nExp,17.0\nExp,14.6`,
+  ecdf: `Baseline,Method A,Method B\n0.72,0.85,0.80\n0.75,0.87,0.83\n0.70,0.84,0.81\n0.78,0.90,0.86\n0.73,0.88,0.82\n0.76,0.91,0.85\n0.71,0.86,0.79\n0.74,0.89,0.84`,
+  bubble: `Region,x,y,Size,Class\nEast,30,80,200,Class1\nNorth,45,60,120,Class1\nSouth,60,75,300,Class2\nSW,20,40,90,Class2\nNE,55,35,150,Class1\nNW,70,55,80,Class3\nCentral,40,65,180,Class2\nSE,50,85,260,Class3`,
+  density2d: `Temp,Humidity\n22,55\n24,60\n23,58\n26,68\n28,72\n25,62\n30,80\n27,66\n29,75\n31,82\n24,57\n26,64\n33,88\n32,85\n28,70\n25,59\n30,78\n27,63\n34,90\n29,77\n23,56\n35,92\n31,84\n26,67\n28,73`,
 };
 
 /** 按语言取示例数据集。 */
@@ -550,6 +568,67 @@ export function renderChart(opts: RenderOptions): RenderResult {
           groups = Array.from(map, ([name, values]) => ({ name, values }));
         }
         rendered = renderBoxplot({ groups }, theme, o);
+        break;
+      }
+      case 'stackedBar': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.slice(1).filter((c: any) => c.type === 'numeric');
+        const categories = catCol.values.map(String);
+        const series = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        rendered = renderStackedBar({ categories, series }, theme, o);
+        break;
+      }
+      case 'violin': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.filter((c: any) => c.type === 'numeric');
+        let groups: any[];
+        if (catCol.type === 'numeric') {
+          groups = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        } else {
+          const map = new Map<string, number[]>();
+          catCol.values.forEach((g: any, i: number) => {
+            const k = String(g);
+            if (!map.has(k)) map.set(k, []);
+            map.get(k)!.push(numCols[0].values[i]);
+          });
+          groups = Array.from(map, ([name, values]) => ({ name, values }));
+        }
+        rendered = renderViolin({ groups }, theme, o);
+        break;
+      }
+      case 'ecdf': {
+        const numCols = table.columns.filter((c: any) => c.type === 'numeric');
+        const series = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        rendered = renderECDF({ series }, theme, o);
+        break;
+      }
+      case 'bubble': {
+        const nums = numericColumns(table);
+        const cats = categoricalColumns(table);
+        const xs = (nums[0] || { values: [] }).values;
+        const ys = (nums[1] || { values: [] }).values;
+        const sizes = (nums[2] || { values: [] }).values;
+        let groups: any[] = [];
+        let points: any[];
+        if (cats.length) {
+          const gcol = cats[0];
+          const names = Array.from(new Set(gcol.values.map(String)));
+          groups = names.map((nm) => ({ name: nm }));
+          const gi = new Map(names.map((nm, i) => [nm, i]));
+          points = xs.map((x: number, i: number) => ({ x, y: ys[i], size: sizes[i], g: gi.get(String(gcol.values[i])) }));
+        } else {
+          points = xs.map((x: number, i: number) => ({ x, y: ys[i], size: sizes[i], g: 0 }));
+        }
+        rendered = renderBubble({ points, groups }, theme, o);
+        break;
+      }
+      case 'density2d': {
+        const nums = numericColumns(table);
+        const xs = (nums[0] || { values: [] }).values;
+        const ys = (nums[1] || { values: [] }).values;
+        rendered = renderDensity2D({ xs, ys }, theme, o);
         break;
       }
       default: return { error: '未知图型' };
