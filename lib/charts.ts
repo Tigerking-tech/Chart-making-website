@@ -37,7 +37,7 @@ import { renderKanban, renderUserJourney, renderServiceBlueprint, renderStoryMap
 import { renderExploded, renderAxonometricPlan } from './engine/charts/iso.js';
 import { renderSequence } from './engine/charts/sequence.js';
 // —— 论文级原创图型（多序列：分组柱状 / 误差折线 / 箱线）——
-import { renderGroupedBar, renderErrorLine, renderBoxplot, renderStackedBar, renderViolin, renderECDF, renderBubble, renderDensity2D, renderBandLine, renderStackedArea, renderRidgeline, renderLollipop, renderForest, renderScatter3D } from './engine/charts/paperfigs.js';
+import { renderGroupedBar, renderErrorLine, renderBoxplot, renderStackedBar, renderViolin, renderECDF, renderBubble, renderDensity2D, renderBandLine, renderStackedArea, renderRidgeline, renderLollipop, renderForest, renderScatter3D, renderWaffle, renderDumbbell, renderParallel, renderSlope, renderRose, renderSwarm } from './engine/charts/paperfigs.js';
 import { numericColumns, categoricalColumns } from './engine/data/parser.js';
 
 export type ChartType =
@@ -55,7 +55,8 @@ export type ChartType =
   | 'exploded' | 'axonometricPlan' | 'sequence'
   // —— 论文级原创图型 ——
   | 'groupedBar' | 'errorLine' | 'boxplot' | 'stackedBar' | 'violin' | 'ecdf' | 'bubble' | 'density2d'
-  | 'bandLine' | 'stackedArea' | 'ridgeline' | 'lollipop' | 'forest' | 'scatter3d';
+  | 'bandLine' | 'stackedArea' | 'ridgeline' | 'lollipop' | 'forest' | 'scatter3d'
+  | 'waffle' | 'dumbbell' | 'parallel' | 'slope' | 'rose' | 'swarm';
 
 export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: string; fishbone?: boolean }[] = [
   { id: 'pareto', label: '柏拉图 Pareto', group: '质量工具', gk: 'q' },
@@ -132,6 +133,12 @@ export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: str
   { id: 'lollipop', label: '棒棒糖图 Lollipop', group: '论文图表', gk: 'paperfig' },
   { id: 'forest', label: '森林图 Forest Plot', group: '论文图表', gk: 'paperfig' },
   { id: 'scatter3d', label: '三维散点图 3D Scatter', group: '论文图表', gk: 'paperfig' },
+  { id: 'waffle', label: '华夫饼图 Waffle', group: '论文图表', gk: 'paperfig' },
+  { id: 'dumbbell', label: '哑铃图 Dumbbell', group: '论文图表', gk: 'paperfig' },
+  { id: 'parallel', label: '平行坐标图 Parallel', group: '论文图表', gk: 'paperfig' },
+  { id: 'slope', label: '斜率图 Slope', group: '论文图表', gk: 'paperfig' },
+  { id: 'rose', label: '南丁格尔玫瑰 Rose', group: '论文图表', gk: 'paperfig' },
+  { id: 'swarm', label: '蜂群图 Swarm', group: '论文图表', gk: 'paperfig' },
 ];
 
 // 图型（节点+连线 / DSL 驱动）渲染器映射：在 renderChart 中早返回，避免进入 CSV 解析分支。
@@ -234,6 +241,12 @@ export const SAMPLES: Record<ChartType, string> = {
   lollipop: `模型,准确率,召回率\n基线,0.78,0.74\n方法A,0.86,0.83\n方法B,0.91,0.88\n方法C,0.94,0.92`,
   forest: `研究,效应值,下限,上限\n研究1,0.82,0.61,1.10\n研究2,1.15,0.90,1.47\n研究3,0.95,0.70,1.28\n研究4,1.30,1.02,1.66\n研究5,0.78,0.55,1.10\n合并,1.02,0.88,1.18`,
   scatter3d: `x,y,z,类别\n1,2,3,一类\n2,3,1,一类\n3,1,2,二类\n2,2,2,一类\n4,3,2,二类\n1,4,3,二类\n3,3,4,一类\n2,1,4,二类`,
+  waffle: `类别,占比\n方法A,38\n方法B,27\n方法C,20\n方法D,15`,
+  dumbbell: `项目,2020,2024\n基线,0.78,0.88\n方法A,0.86,0.93\n方法B,0.91,0.96\n方法C,0.94,0.98`,
+  parallel: `模型,准确率,召回率,速度,稳定性\n基线,0.78,0.74,0.60,0.70\n方法A,0.86,0.83,0.75,0.80\n方法B,0.91,0.88,0.82,0.85\n方法C,0.94,0.92,0.90,0.92`,
+  slope: `国家,2010,2020\n中国,6.5,12.3\n美国,14.9,21.4\n日本,5.7,4.9\n德国,3.4,3.8`,
+  rose: `月份,值\n一月,30\n二月,55\n三月,42\n四月,68\n五月,90\n六月,75\n七月,60\n八月,45\n九月,80\n十月,70\n十一月,55\n十二月,40`,
+  swarm: `组别,数值\n对照组,12.1\n对照组,11.8\n对照组,12.5\n对照组,11.5\n对照组,12.0\n对照组,13.0\n对照组,11.2\n对照组,12.8\n对照组,11.9\n实验组,15.2\n实验组,14.8\n实验组,16.1\n实验组,15.0\n实验组,15.6\n实验组,14.2\n实验组,16.5\n实验组,15.9\n实验组,17.0\n实验组,14.6`,
 };
 
 export const DEFAULT_TITLES: Record<ChartType, string> = {
@@ -256,6 +269,8 @@ export const DEFAULT_TITLES: Record<ChartType, string> = {
   bubble: '气泡图 Bubble Chart', density2d: '二维密度图 2D Density',
   bandLine: '置信带折线图 CI Band', stackedArea: '堆叠面积图 Stacked Area', ridgeline: '山脊线图 Ridgeline',
   lollipop: '棒棒糖图 Lollipop', forest: '森林图 Forest Plot', scatter3d: '三维散点图 3D Scatter',
+  waffle: '华夫饼图 Waffle', dumbbell: '哑铃图 Dumbbell', parallel: '平行坐标图 Parallel',
+  slope: '斜率图 Slope', rose: '南丁格尔玫瑰 Rose', swarm: '蜂群图 Swarm',
 };
 
 // 英文默认标题
@@ -277,6 +292,8 @@ export const DEFAULT_TITLES_EN: Record<ChartType, string> = {
   stackedBar: 'Stacked Bar', violin: 'Violin Plot', ecdf: 'ECDF',   bubble: 'Bubble Chart', density2d: '2D Density',
   bandLine: 'CI Band Line', stackedArea: 'Stacked Area', ridgeline: 'Ridgeline',
   lollipop: 'Lollipop', forest: 'Forest Plot', scatter3d: '3D Scatter',
+  waffle: 'Waffle', dumbbell: 'Dumbbell', parallel: 'Parallel',
+  slope: 'Slope', rose: 'Nightingale Rose', swarm: 'Swarm',
 };
 
 // 英文示例数据：数值样本中英通用，带文案的样本翻译为英文。
@@ -356,6 +373,12 @@ export const SAMPLES_EN: Record<ChartType, string> = {
   lollipop: `Model,Accuracy,Recall\nBaseline,0.78,0.74\nMethodA,0.86,0.83\nMethodB,0.91,0.88\nMethodC,0.94,0.92`,
   forest: `Study,Estimate,Lower,Upper\nStudy1,0.82,0.61,1.10\nStudy2,1.15,0.90,1.47\nStudy3,0.95,0.70,1.28\nStudy4,1.30,1.02,1.66\nStudy5,0.78,0.55,1.10\nPooled,1.02,0.88,1.18`,
   scatter3d: `x,y,z,Class\n1,2,3,Class1\n2,3,1,Class1\n3,1,2,Class2\n2,2,2,Class1\n4,3,2,Class2\n1,4,3,Class2\n3,3,4,Class1\n2,1,4,Class2`,
+  waffle: `Category,Share\nMethodA,38\nMethodB,27\nMethodC,20\nMethodD,15`,
+  dumbbell: `Item,2020,2024\nBaseline,0.78,0.88\nMethodA,0.86,0.93\nMethodB,0.91,0.96\nMethodC,0.94,0.98`,
+  parallel: `Model,Accuracy,Recall,Speed,Stability\nBaseline,0.78,0.74,0.60,0.70\nMethodA,0.86,0.83,0.75,0.80\nMethodB,0.91,0.88,0.82,0.85\nMethodC,0.94,0.92,0.90,0.92`,
+  slope: `Country,2010,2020\nChina,6.5,12.3\nUSA,14.9,21.4\nJapan,5.7,4.9\nGermany,3.4,3.8`,
+  rose: `Month,Value\nJan,30\nFeb,55\nMar,42\nApr,68\nMay,90\nJun,75\nJul,60\nAug,45\nSep,80\nOct,70\nNov,55\nDec,40`,
+  swarm: `Group,Value\nControl,12.1\nControl,11.8\nControl,12.5\nControl,11.5\nControl,12.0\nControl,13.0\nControl,11.2\nControl,12.8\nControl,11.9\nExp,15.2\nExp,14.8\nExp,16.1\nExp,15.0\nExp,15.6\nExp,14.2\nExp,16.5\nExp,15.9\nExp,17.0\nExp,14.6`,
 };
 
 /** 按语言取示例数据集。 */
@@ -753,6 +776,88 @@ export function renderChart(opts: RenderOptions): RenderResult {
           points = xs.map((x: number, i: number) => ({ x, y: ys[i], z: zs[i], g: 0 }));
         }
         rendered = renderScatter3D({ points, groups }, theme, o);
+        break;
+      }
+      case 'waffle': {
+        const cats = categoricalColumns(table);
+        const nums = numericColumns(table);
+        const segCol = cats[0];
+        const valCol = nums[0];
+        let segments: any[];
+        if (segCol) {
+          segments = segCol.values.map((nm: any, i: number) => ({ name: String(nm), value: valCol ? valCol.values[i] : 0 }));
+        } else {
+          segments = (valCol ? valCol.values : []).map((v: any, i: number) => ({ name: '#' + (i + 1), value: v }));
+        }
+        rendered = renderWaffle({ segments }, theme, o);
+        break;
+      }
+      case 'dumbbell': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.slice(1).filter((c: any) => c.type === 'numeric');
+        const categories = catCol.values.map(String);
+        const start = (numCols[0] || { values: [] }).values;
+        const end = (numCols[1] || numCols[0] || { values: [] }).values;
+        const startName = numCols[0] ? numCols[0].name : '';
+        const endName = numCols[1] ? numCols[1].name : '';
+        rendered = renderDumbbell({ categories, start, end, startName, endName }, theme, o);
+        break;
+      }
+      case 'parallel': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.slice(1).filter((c: any) => c.type === 'numeric');
+        const dims = numCols.map((c: any) => c.name);
+        let series: any[];
+        if (catCol.type === 'numeric') {
+          series = catCol.values.map((_: any, i: number) => ({ name: 'S' + (i + 1), values: numCols.map((c: any) => c.values[i]) }));
+        } else {
+          series = catCol.values.map((nm: any, i: number) => ({ name: String(nm), values: numCols.map((c: any) => c.values[i]) }));
+        }
+        rendered = renderParallel({ dims, series }, theme, o);
+        break;
+      }
+      case 'slope': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.slice(1).filter((c: any) => c.type === 'numeric');
+        const categories = catCol.values.map(String);
+        const left = (numCols[0] || { values: [] }).values;
+        const right = (numCols[1] || numCols[0] || { values: [] }).values;
+        const leftLabel = numCols[0] ? numCols[0].name : '';
+        const rightLabel = numCols[1] ? numCols[1].name : '';
+        rendered = renderSlope({ categories, left, right, leftLabel, rightLabel }, theme, o);
+        break;
+      }
+      case 'rose': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.filter((c: any) => c.type === 'numeric');
+        const categories = catCol.type === 'numeric'
+          ? (numCols[0] ? numCols[0].values.map((_: any, i: number) => String(i + 1)) : [])
+          : catCol.values.map(String);
+        const values = (numCols[0] || { values: [] }).values;
+        rendered = renderRose({ categories, values }, theme, o);
+        break;
+      }
+      case 'swarm': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.filter((c: any) => c.type === 'numeric');
+        let groups: any[];
+        if (catCol.type === 'numeric') {
+          groups = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        } else {
+          const map = new Map<string, number[]>();
+          catCol.values.forEach((g: any, i: number) => {
+            const k = String(g);
+            if (!map.has(k)) map.set(k, []);
+            map.get(k)!.push(numCols[0].values[i]);
+          });
+          groups = Array.from(map, ([name, values]) => ({ name, values }));
+        }
+        rendered = renderSwarm({ groups }, theme, o);
         break;
       }
       default: return { error: '未知图型' };
