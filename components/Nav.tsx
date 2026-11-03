@@ -14,6 +14,7 @@ export function Nav({ lang }: { lang: Lang }) {
           <Link href="/gallery">{t(lang, 'nav.gallery')}</Link>
           <Link href="/canvas">{t(lang, 'nav.canvas')}</Link>
           <Link href="/figures4papers">{t(lang, 'nav.paper')}</Link>
+          <Link href="/paper-figures">{t(lang, 'nav.forge')}</Link>
           <Link href="/pricing">{t(lang, 'nav.pricing')}</Link>
           <Link href="/#features">{t(lang, 'nav.features')}</Link>
         </div>

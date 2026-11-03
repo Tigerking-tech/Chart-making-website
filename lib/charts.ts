@@ -36,6 +36,8 @@ import { renderSankey } from './engine/charts/sankey.js';
 import { renderKanban, renderUserJourney, renderServiceBlueprint, renderStoryMap } from './engine/charts/experience.js';
 import { renderExploded, renderAxonometricPlan } from './engine/charts/iso.js';
 import { renderSequence } from './engine/charts/sequence.js';
+// —— 论文级原创图型（多序列：分组柱状 / 误差折线 / 箱线）——
+import { renderGroupedBar, renderErrorLine, renderBoxplot } from './engine/charts/paperfigs.js';
 import { numericColumns, categoricalColumns } from './engine/data/parser.js';
 
 export type ChartType =
@@ -50,7 +52,9 @@ export type ChartType =
   | 'waterfall' | 'treemap' | 'heatmap' | 'dpSecurityMatrix'
   | 'timeline' | 'gantt' | 'er' | 'umlClass' | 'dbSchema' | 'sankey'
   | 'kanban' | 'userJourney' | 'serviceBlueprint' | 'storyMap'
-  | 'exploded' | 'axonometricPlan' | 'sequence';
+  | 'exploded' | 'axonometricPlan' | 'sequence'
+  // —— 论文级原创图型（多序列）——
+  | 'groupedBar' | 'errorLine' | 'boxplot';
 
 export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: string; fishbone?: boolean }[] = [
   { id: 'pareto', label: '柏拉图 Pareto', group: '质量工具', gk: 'q' },
@@ -112,6 +116,10 @@ export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: str
   { id: 'exploded', label: '爆炸轴测图 Exploded', group: '轴测图', gk: 'isometric' },
   { id: 'axonometricPlan', label: '轴测平面图 Axonometric Plan', group: '轴测图', gk: 'isometric' },
   { id: 'sequence', label: '时序图 Sequence', group: '图型', gk: 'diagram' },
+  // —— 论文级原创图型（多序列）——
+  { id: 'groupedBar', label: '分组柱状图 Grouped Bar', group: '论文图表', gk: 'paperfig' },
+  { id: 'errorLine', label: '误差折线图 Error Line', group: '论文图表', gk: 'paperfig' },
+  { id: 'boxplot', label: '箱线图 Box Plot', group: '论文图表', gk: 'paperfig' },
 ];
 
 // 图型（节点+连线 / DSL 驱动）渲染器映射：在 renderChart 中早返回，避免进入 CSV 解析分支。
@@ -199,6 +207,10 @@ export const SAMPLES: Record<ChartType, string> = {
   exploded: `外壳\n主板 | 主芯片, 内存\n电池 | 锂电芯 | *\n后盖`,
   axonometricPlan: `房间,x,y,w,h\n客厅,0,0,4,3\n卧室,4,0,3,3\n厨房,0,3,3,2\n卫生间,3,3,1,2\n阳台,0,5,7,1`,
   sequence: `actor: 用户\nactor: 系统\nactor: 支付\nmsg: 用户 -> 系统 | 登录\nmsg: 系统 -> 支付 | 扣款\nmsg: 支付 -> 系统 | 结果\nmsg: 系统 -> 用户 | 跳转`,
+  // —— 论文级原创图型（多序列）——
+  groupedBar: `模型,准确率,召回率,F1\n基线,0.78,0.74,0.76\n方法A,0.86,0.83,0.84\n方法B,0.91,0.88,0.89\n方法C,0.94,0.92,0.93`,
+  errorLine: `轮次,方法A,方法A误差,方法B,方法B误差\n10,0.55,0.04,0.50,0.05\n20,0.70,0.03,0.66,0.04\n30,0.80,0.03,0.78,0.03\n40,0.86,0.02,0.85,0.03\n50,0.90,0.02,0.89,0.02\n60,0.93,0.02,0.92,0.02`,
+  boxplot: `组别,数值\n对照组,12.1\n对照组,11.8\n对照组,12.5\n对照组,11.5\n对照组,12.0\n对照组,13.0\n对照组,11.2\n实验组,15.2\n实验组,14.8\n实验组,16.1\n实验组,15.0\n实验组,15.6\n实验组,14.2\n实验组,16.5\n实验组,15.9`,
 };
 
 export const DEFAULT_TITLES: Record<ChartType, string> = {
@@ -216,6 +228,7 @@ export const DEFAULT_TITLES: Record<ChartType, string> = {
   gantt: '甘特图', er: 'ER 数据模型', umlClass: 'UML 类图', dbSchema: '数据库模式', sankey: '桑基图',
   kanban: '看板', userJourney: '用户旅程', serviceBlueprint: '服务蓝图', storyMap: '故事地图',
   exploded: '爆炸轴测图', axonometricPlan: '轴测平面图', sequence: '时序图',
+  groupedBar: '分组柱状图 Grouped Bar', errorLine: '误差折线图 Error Line', boxplot: '箱线图 Box Plot',
 };
 
 // 英文默认标题
@@ -233,6 +246,7 @@ export const DEFAULT_TITLES_EN: Record<ChartType, string> = {
   gantt: 'Gantt', er: 'ER Diagram', umlClass: 'UML Class', dbSchema: 'Database Schema', sankey: 'Sankey',
   kanban: 'Kanban', userJourney: 'User Journey', serviceBlueprint: 'Service Blueprint', storyMap: 'Story Map',
   exploded: 'Exploded Axonometric', axonometricPlan: 'Axonometric Plan', sequence: 'Sequence Diagram',
+  groupedBar: 'Grouped Bar', errorLine: 'Error-bar Line', boxplot: 'Box Plot',
 };
 
 // 英文示例数据：数值样本中英通用，带文案的样本翻译为英文。
@@ -298,6 +312,9 @@ export const SAMPLES_EN: Record<ChartType, string> = {
   exploded: `Shell\nBoard | SoC, RAM\nBattery | Cell | *\nBackplate`,
   axonometricPlan: `Room,x,y,w,h\nLiving,0,0,4,3\nBed,4,0,3,3\nKitchen,0,3,3,2\nBath,3,3,1,2\nBalcony,0,5,7,1`,
   sequence: `actor: User\nactor: System\nactor: Payment\nmsg: User -> System | Login\nmsg: System -> Payment | Charge\nmsg: Payment -> System | Result\nmsg: System -> User | Redirect`,
+  groupedBar: `Model,Accuracy,Recall,F1\nBaseline,0.78,0.74,0.76\nMethodA,0.86,0.83,0.84\nMethodB,0.91,0.88,0.89\nMethodC,0.94,0.92,0.93`,
+  errorLine: `Epoch,Model A,Model A SEM,Model B,Model B SEM\n10,0.55,0.04,0.50,0.05\n20,0.70,0.03,0.66,0.04\n30,0.80,0.03,0.78,0.03\n40,0.86,0.02,0.85,0.03\n50,0.90,0.02,0.89,0.02\n60,0.93,0.02,0.92,0.02`,
+  boxplot: `Group,Value\nControl,12.1\nControl,11.8\nControl,12.5\nControl,11.5\nControl,12.0\nControl,13.0\nControl,11.2\nExp,15.2\nExp,14.8\nExp,16.1\nExp,15.0\nExp,15.6\nExp,14.2\nExp,16.5\nExp,15.9`,
 };
 
 /** 按语言取示例数据集。 */
@@ -487,6 +504,52 @@ export function renderChart(opts: RenderOptions): RenderResult {
         const valCol = nums[0];
         const data = valCol.values.map((v, i) => ({ op: String(opCol.values[i] ?? 'A'), part: String(partCol.values[i] ?? (i + 1)), val: v }));
         rendered = renderMsa(data, theme, o);
+        break;
+      }
+      case 'groupedBar': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.slice(1).filter((c: any) => c.type === 'numeric');
+        const categories = catCol.values.map(String);
+        const series = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        rendered = renderGroupedBar({ categories, series }, theme, o);
+        break;
+      }
+      case 'errorLine': {
+        const cols = table.columns;
+        const xNumeric = cols[0].type === 'numeric';
+        const rest = cols.slice(1);
+        const series: any[] = [];
+        let cur: any = null;
+        for (const c of rest) {
+          if (/err|误差|error|±|\bsd\b|\bsem\b/i.test(c.name)) {
+            if (cur) cur.errors = c.values;
+            else { cur = { name: c.name, values: c.values.map(() => 0), errors: c.values }; series.push(cur); }
+          } else {
+            cur = { name: c.name, values: c.values, errors: c.values.map(() => 0) };
+            series.push(cur);
+          }
+        }
+        rendered = renderErrorLine({ xType: xNumeric ? 'linear' : 'category', xs: cols[0].values, series }, theme, o);
+        break;
+      }
+      case 'boxplot': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.filter((c: any) => c.type === 'numeric');
+        let groups: any[];
+        if (catCol.type === 'numeric') {
+          groups = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        } else {
+          const map = new Map<string, number[]>();
+          catCol.values.forEach((g: any, i: number) => {
+            const k = String(g);
+            if (!map.has(k)) map.set(k, []);
+            map.get(k)!.push(numCols[0].values[i]);
+          });
+          groups = Array.from(map, ([name, values]) => ({ name, values }));
+        }
+        rendered = renderBoxplot({ groups }, theme, o);
         break;
       }
       default: return { error: '未知图型' };

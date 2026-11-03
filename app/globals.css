@@ -241,6 +241,13 @@ footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted)
 .f4p-code pre { margin: 0; max-height: 320px; overflow: auto; padding: 10px 12px; }
 .f4p-code code { color: #e2e8f0; font-size: 12px; line-height: 1.5; white-space: pre; }
 .f4p-foot { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.6; }
+.pf-head { margin-bottom: 4px; }
+.pf-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #e7f6ee; color: #1f7a4d; font-weight: 700; font-size: 12px; margin-bottom: 10px; }
+.pf-head h1 { font-size: 30px; margin: 0 0 8px; }
+.pf-head .sub { color: var(--muted); max-width: 880px; line-height: 1.7; }
+.pf-head .sub strong { color: var(--ink); }
+.pf-note { margin-top: 12px; font-size: 13px; color: var(--muted); }
+.pf-desc { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--muted); }
 
 
 /* 文件拖入区 */
