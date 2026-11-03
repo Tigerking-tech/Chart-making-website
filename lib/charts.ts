@@ -37,7 +37,7 @@ import { renderKanban, renderUserJourney, renderServiceBlueprint, renderStoryMap
 import { renderExploded, renderAxonometricPlan } from './engine/charts/iso.js';
 import { renderSequence } from './engine/charts/sequence.js';
 // —— 论文级原创图型（多序列：分组柱状 / 误差折线 / 箱线）——
-import { renderGroupedBar, renderErrorLine, renderBoxplot, renderStackedBar, renderViolin, renderECDF, renderBubble, renderDensity2D } from './engine/charts/paperfigs.js';
+import { renderGroupedBar, renderErrorLine, renderBoxplot, renderStackedBar, renderViolin, renderECDF, renderBubble, renderDensity2D, renderBandLine, renderStackedArea, renderRidgeline, renderLollipop, renderForest, renderScatter3D } from './engine/charts/paperfigs.js';
 import { numericColumns, categoricalColumns } from './engine/data/parser.js';
 
 export type ChartType =
@@ -54,7 +54,8 @@ export type ChartType =
   | 'kanban' | 'userJourney' | 'serviceBlueprint' | 'storyMap'
   | 'exploded' | 'axonometricPlan' | 'sequence'
   // —— 论文级原创图型 ——
-  | 'groupedBar' | 'errorLine' | 'boxplot' | 'stackedBar' | 'violin' | 'ecdf' | 'bubble' | 'density2d';
+  | 'groupedBar' | 'errorLine' | 'boxplot' | 'stackedBar' | 'violin' | 'ecdf' | 'bubble' | 'density2d'
+  | 'bandLine' | 'stackedArea' | 'ridgeline' | 'lollipop' | 'forest' | 'scatter3d';
 
 export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: string; fishbone?: boolean }[] = [
   { id: 'pareto', label: '柏拉图 Pareto', group: '质量工具', gk: 'q' },
@@ -125,6 +126,12 @@ export const CHART_TYPES: { id: ChartType; label: string; group: string; gk: str
   { id: 'ecdf', label: '经验累积分布 ECDF', group: '论文图表', gk: 'paperfig' },
   { id: 'bubble', label: '气泡图 Bubble Chart', group: '论文图表', gk: 'paperfig' },
   { id: 'density2d', label: '二维密度图 2D Density', group: '论文图表', gk: 'paperfig' },
+  { id: 'bandLine', label: '置信带折线图 CI Band', group: '论文图表', gk: 'paperfig' },
+  { id: 'stackedArea', label: '堆叠面积图 Stacked Area', group: '论文图表', gk: 'paperfig' },
+  { id: 'ridgeline', label: '山脊线图 Ridgeline', group: '论文图表', gk: 'paperfig' },
+  { id: 'lollipop', label: '棒棒糖图 Lollipop', group: '论文图表', gk: 'paperfig' },
+  { id: 'forest', label: '森林图 Forest Plot', group: '论文图表', gk: 'paperfig' },
+  { id: 'scatter3d', label: '三维散点图 3D Scatter', group: '论文图表', gk: 'paperfig' },
 ];
 
 // 图型（节点+连线 / DSL 驱动）渲染器映射：在 renderChart 中早返回，避免进入 CSV 解析分支。
@@ -221,6 +228,12 @@ export const SAMPLES: Record<ChartType, string> = {
   ecdf: `基线,方法A,方法B\n0.72,0.85,0.80\n0.75,0.87,0.83\n0.70,0.84,0.81\n0.78,0.90,0.86\n0.73,0.88,0.82\n0.76,0.91,0.85\n0.71,0.86,0.79\n0.74,0.89,0.84`,
   bubble: `地区,x,y,规模,类别\n华东,30,80,200,一类\n华北,45,60,120,一类\n华南,60,75,300,二类\n西南,20,40,90,二类\n东北,55,35,150,一类\n西北,70,55,80,三类\n华中,40,65,180,二类\n东南,50,85,260,三类`,
   density2d: `温度,湿度\n22,55\n24,60\n23,58\n26,68\n28,72\n25,62\n30,80\n27,66\n29,75\n31,82\n24,57\n26,64\n33,88\n32,85\n28,70\n25,59\n30,78\n27,63\n34,90\n29,77\n23,56\n35,92\n31,84\n26,67\n28,73`,
+  bandLine: `轮次,方法A,方法A下,方法A上,方法B,方法B下,方法B上\n10,0.72,0.68,0.76,0.70,0.66,0.74\n20,0.80,0.77,0.83,0.78,0.75,0.81\n30,0.86,0.84,0.88,0.85,0.82,0.88\n40,0.90,0.88,0.92,0.89,0.87,0.91\n50,0.93,0.91,0.95,0.92,0.90,0.94\n60,0.95,0.93,0.96,0.94,0.92,0.96`,
+  stackedArea: `年份,产品A,产品B,产品C\n2019,120,90,40\n2020,135,110,55\n2021,148,130,70\n2022,160,150,90\n2023,172,165,110\n2024,190,180,140`,
+  ridgeline: `组别,数值\n对照组,12.1\n对照组,11.8\n对照组,12.5\n对照组,11.5\n对照组,12.0\n对照组,13.0\n对照组,11.2\n对照组,12.8\n对照组,11.9\n实验组,15.2\n实验组,14.8\n实验组,16.1\n实验组,15.0\n实验组,15.6\n实验组,14.2\n实验组,16.5\n实验组,15.9\n实验组,17.0\n实验组,14.6`,
+  lollipop: `模型,准确率,召回率\n基线,0.78,0.74\n方法A,0.86,0.83\n方法B,0.91,0.88\n方法C,0.94,0.92`,
+  forest: `研究,效应值,下限,上限\n研究1,0.82,0.61,1.10\n研究2,1.15,0.90,1.47\n研究3,0.95,0.70,1.28\n研究4,1.30,1.02,1.66\n研究5,0.78,0.55,1.10\n合并,1.02,0.88,1.18`,
+  scatter3d: `x,y,z,类别\n1,2,3,一类\n2,3,1,一类\n3,1,2,二类\n2,2,2,一类\n4,3,2,二类\n1,4,3,二类\n3,3,4,一类\n2,1,4,二类`,
 };
 
 export const DEFAULT_TITLES: Record<ChartType, string> = {
@@ -241,6 +254,8 @@ export const DEFAULT_TITLES: Record<ChartType, string> = {
   groupedBar: '分组柱状图 Grouped Bar', errorLine: '误差折线图 Error Line', boxplot: '箱线图 Box Plot',
   stackedBar: '堆叠柱状图 Stacked Bar', violin: '小提琴图 Violin Plot', ecdf: '经验累积分布 ECDF',
   bubble: '气泡图 Bubble Chart', density2d: '二维密度图 2D Density',
+  bandLine: '置信带折线图 CI Band', stackedArea: '堆叠面积图 Stacked Area', ridgeline: '山脊线图 Ridgeline',
+  lollipop: '棒棒糖图 Lollipop', forest: '森林图 Forest Plot', scatter3d: '三维散点图 3D Scatter',
 };
 
 // 英文默认标题
@@ -259,7 +274,9 @@ export const DEFAULT_TITLES_EN: Record<ChartType, string> = {
   kanban: 'Kanban', userJourney: 'User Journey', serviceBlueprint: 'Service Blueprint', storyMap: 'Story Map',
   exploded: 'Exploded Axonometric', axonometricPlan: 'Axonometric Plan', sequence: 'Sequence Diagram',
   groupedBar: 'Grouped Bar', errorLine: 'Error-bar Line', boxplot: 'Box Plot',
-  stackedBar: 'Stacked Bar', violin: 'Violin Plot', ecdf: 'ECDF', bubble: 'Bubble Chart', density2d: '2D Density',
+  stackedBar: 'Stacked Bar', violin: 'Violin Plot', ecdf: 'ECDF',   bubble: 'Bubble Chart', density2d: '2D Density',
+  bandLine: 'CI Band Line', stackedArea: 'Stacked Area', ridgeline: 'Ridgeline',
+  lollipop: 'Lollipop', forest: 'Forest Plot', scatter3d: '3D Scatter',
 };
 
 // 英文示例数据：数值样本中英通用，带文案的样本翻译为英文。
@@ -333,6 +350,12 @@ export const SAMPLES_EN: Record<ChartType, string> = {
   ecdf: `Baseline,Method A,Method B\n0.72,0.85,0.80\n0.75,0.87,0.83\n0.70,0.84,0.81\n0.78,0.90,0.86\n0.73,0.88,0.82\n0.76,0.91,0.85\n0.71,0.86,0.79\n0.74,0.89,0.84`,
   bubble: `Region,x,y,Size,Class\nEast,30,80,200,Class1\nNorth,45,60,120,Class1\nSouth,60,75,300,Class2\nSW,20,40,90,Class2\nNE,55,35,150,Class1\nNW,70,55,80,Class3\nCentral,40,65,180,Class2\nSE,50,85,260,Class3`,
   density2d: `Temp,Humidity\n22,55\n24,60\n23,58\n26,68\n28,72\n25,62\n30,80\n27,66\n29,75\n31,82\n24,57\n26,64\n33,88\n32,85\n28,70\n25,59\n30,78\n27,63\n34,90\n29,77\n23,56\n35,92\n31,84\n26,67\n28,73`,
+  bandLine: `Epoch,Model A,Model A lo,Model A hi,Model B,Model B lo,Model B hi\n10,0.72,0.68,0.76,0.70,0.66,0.74\n20,0.80,0.77,0.83,0.78,0.75,0.81\n30,0.86,0.84,0.88,0.85,0.82,0.88\n40,0.90,0.88,0.92,0.89,0.87,0.91\n50,0.93,0.91,0.95,0.92,0.90,0.94\n60,0.95,0.93,0.96,0.94,0.92,0.96`,
+  stackedArea: `Year,Product A,Product B,Product C\n2019,120,90,40\n2020,135,110,55\n2021,148,130,70\n2022,160,150,90\n2023,172,165,110\n2024,190,180,140`,
+  ridgeline: `Group,Value\nControl,12.1\nControl,11.8\nControl,12.5\nControl,11.5\nControl,12.0\nControl,13.0\nControl,11.2\nControl,12.8\nControl,11.9\nExp,15.2\nExp,14.8\nExp,16.1\nExp,15.0\nExp,15.6\nExp,14.2\nExp,16.5\nExp,15.9\nExp,17.0\nExp,14.6`,
+  lollipop: `Model,Accuracy,Recall\nBaseline,0.78,0.74\nMethodA,0.86,0.83\nMethodB,0.91,0.88\nMethodC,0.94,0.92`,
+  forest: `Study,Estimate,Lower,Upper\nStudy1,0.82,0.61,1.10\nStudy2,1.15,0.90,1.47\nStudy3,0.95,0.70,1.28\nStudy4,1.30,1.02,1.66\nStudy5,0.78,0.55,1.10\nPooled,1.02,0.88,1.18`,
+  scatter3d: `x,y,z,Class\n1,2,3,Class1\n2,3,1,Class1\n3,1,2,Class2\n2,2,2,Class1\n4,3,2,Class2\n1,4,3,Class2\n3,3,4,Class1\n2,1,4,Class2`,
 };
 
 /** 按语言取示例数据集。 */
@@ -629,6 +652,107 @@ export function renderChart(opts: RenderOptions): RenderResult {
         const xs = (nums[0] || { values: [] }).values;
         const ys = (nums[1] || { values: [] }).values;
         rendered = renderDensity2D({ xs, ys }, theme, o);
+        break;
+      }
+      case 'bandLine': {
+        const cols = table.columns;
+        const xNumeric = cols[0].type === 'numeric';
+        const rest = cols.slice(1);
+        const lowerNames = new Set<string>(), upperNames = new Set<string>();
+        rest.forEach((c: any) => {
+          if (/(下|min|lower|lo\b|lb|ci[-_]?low|ci[-_]?-|下限)/i.test(c.name)) lowerNames.add(c.name);
+          if (/(上|max|upper|hi\b|ub|ci[-_]?high|ci[-_]?\+|上限)/i.test(c.name)) upperNames.add(c.name);
+        });
+        const series: any[] = [];
+        rest.forEach((c: any) => {
+          if (lowerNames.has(c.name) || upperNames.has(c.name)) return;
+          const lowerCol = rest.find((r: any) => r.name === c.name + '下' || r.name === c.name + ' lower' || r.name === c.name + '_min' || r.name === c.name + ' min');
+          const upperCol = rest.find((r: any) => r.name === c.name + '上' || r.name === c.name + ' upper' || r.name === c.name + '_max' || r.name === c.name + ' max');
+          series.push({
+            name: c.name,
+            values: c.values,
+            lower: lowerCol ? lowerCol.values : null,
+            upper: upperCol ? upperCol.values : null,
+          });
+        });
+        rendered = renderBandLine({ xType: xNumeric ? 'linear' : 'category', xs: cols[0].values, series }, theme, o);
+        break;
+      }
+      case 'stackedArea': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.slice(1).filter((c: any) => c.type === 'numeric');
+        const categories = catCol.values.map(String);
+        const series = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        rendered = renderStackedArea({ xNumeric: catCol.type === 'numeric', categories, series }, theme, o);
+        break;
+      }
+      case 'ridgeline': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.filter((c: any) => c.type === 'numeric');
+        let groups: any[];
+        if (catCol.type === 'numeric') {
+          groups = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        } else {
+          const map = new Map<string, number[]>();
+          catCol.values.forEach((g: any, i: number) => {
+            const k = String(g);
+            if (!map.has(k)) map.set(k, []);
+            map.get(k)!.push(numCols[0].values[i]);
+          });
+          groups = Array.from(map, ([name, values]) => ({ name, values }));
+        }
+        rendered = renderRidgeline({ groups }, theme, o);
+        break;
+      }
+      case 'lollipop': {
+        const cols = table.columns;
+        const catCol = cols[0];
+        const numCols = cols.slice(1).filter((c: any) => c.type === 'numeric');
+        const categories = catCol.values.map(String);
+        const series = numCols.map((c: any) => ({ name: c.name, values: c.values }));
+        rendered = renderLollipop({ categories, series }, theme, o);
+        break;
+      }
+      case 'forest': {
+        const cols = table.columns;
+        const cats = categoricalColumns(table);
+        const nums = numericColumns(table);
+        const estCol = nums[0], loCol = nums[1] || nums[0], hiCol = nums[2] || nums[0];
+        const nameCol = cols[0];
+        const studies = (estCol ? estCol.values : []).map((_: any, i: number) => {
+          const name = String(nameCol.values[i] ?? ('#' + (i + 1)));
+          const summary = /(汇总|合并|summary|pooled|总体|meta|merge)/i.test(name);
+          return {
+            name,
+            est: estCol ? estCol.values[i] : 0,
+            lo: loCol ? loCol.values[i] : 0,
+            hi: hiCol ? hiCol.values[i] : 0,
+            summary,
+          };
+        });
+        rendered = renderForest({ studies }, theme, o);
+        break;
+      }
+      case 'scatter3d': {
+        const nums = numericColumns(table);
+        const cats = categoricalColumns(table);
+        const xs = (nums[0] || { values: [] }).values;
+        const ys = (nums[1] || { values: [] }).values;
+        const zs = (nums[2] || { values: [] }).values;
+        let groups: any[] = [];
+        let points: any[];
+        if (cats.length) {
+          const gcol = cats[0];
+          const names = Array.from(new Set(gcol.values.map(String)));
+          groups = names.map((nm) => ({ name: nm }));
+          const gi = new Map(names.map((nm, i) => [nm, i]));
+          points = xs.map((x: number, i: number) => ({ x, y: ys[i], z: zs[i], g: gi.get(String(gcol.values[i])) }));
+        } else {
+          points = xs.map((x: number, i: number) => ({ x, y: ys[i], z: zs[i], g: 0 }));
+        }
+        rendered = renderScatter3D({ points, groups }, theme, o);
         break;
       }
       default: return { error: '未知图型' };
