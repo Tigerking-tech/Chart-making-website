@@ -13,7 +13,7 @@ export const LANGS: { code: Lang; label: string; title: string }[] = [
 export const dict: Record<Lang, Record<string, any>> = {
   zh: {
     // —— 导航 ——
-    nav: { studio: '作图 Studio', report: 'SPC 报告', gallery: '图型库', canvas: '品牌画布', paper: '论文图集', forge: '原创论文图', pricing: '定价', features: '功能', cta: '免费开始作图' },
+    nav: { studio: '作图 Studio', tools: '免费工具', report: 'SPC 报告', gallery: '图型库', canvas: '品牌画布', paper: '论文图集', forge: '原创论文图', pricing: '定价', features: '功能', cta: '免费开始作图' },
 
     // —— 页脚 ——
     footer: { tagline: '© 2026 ChartForge · 图表工坊 — 正确 + 好看 + 垂直 + 自助的 Web 图表 SaaS' },
@@ -266,7 +266,7 @@ export const dict: Record<Lang, Record<string, any>> = {
   },
 
   en: {
-    nav: { studio: 'Chart Studio', report: 'SPC Report', gallery: 'Gallery', canvas: 'Brand Canvas', paper: 'Paper Figures', forge: 'Original Figures', pricing: 'Pricing', features: 'Features', cta: 'Start Free' },
+    nav: { studio: 'Chart Studio', tools: 'Free Tools', report: 'SPC Report', gallery: 'Gallery', canvas: 'Brand Canvas', paper: 'Paper Figures', forge: 'Original Figures', pricing: 'Pricing', features: 'Features', cta: 'Start Free' },
 
     footer: { tagline: '© 2026 ChartForge — correct + beautiful + vertical + self-serve Web chart SaaS' },
 
