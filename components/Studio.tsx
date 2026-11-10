@@ -18,6 +18,17 @@ import { Lang, t, chartName, groupName } from '@/lib/i18n';
 const LEGEND_TYPES = ['pareto', 'scatter', 'capability'];
 const DATA_LABEL_TYPES = ['bar', 'pareto'];
 
+// 图型选择器按分组折叠，避免在 78 项平铺列表里找图。
+const TYPE_GROUPS: { gk: string; items: typeof CHART_TYPES }[] = [];
+CHART_TYPES.forEach((c) => {
+  let g = TYPE_GROUPS.find((x) => x.gk === c.gk);
+  if (!g) {
+    g = { gk: c.gk, items: [] };
+    TYPE_GROUPS.push(g);
+  }
+  g.items.push(c);
+});
+
 export function Studio({ lang }: { lang: Lang }) {
   const S = samplesFor(lang);
   const [type, setType] = useState<string>('pareto');
@@ -83,6 +94,14 @@ export function Studio({ lang }: { lang: Lang }) {
   }, []);
 
   const isFish = type === 'fishbone';
+
+  // 空输入框时给出当前图型的真实数据格式示例（取示例数据的前几行）。
+  const dataHint = (() => {
+    const raw = isFish ? S.fishbone : (S as Record<string, string>)[type] || '';
+    const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return '';
+    return lines.slice(0, 4).join('\n') + (lines.length > 4 ? '\n…' : '');
+  })();
 
   const result = useMemo(() => renderChart({
     type: type as any,
@@ -182,9 +201,13 @@ export function Studio({ lang }: { lang: Lang }) {
         <div className="panel">
           <h3>{t(lang, 'studio.s1')}</h3>
           <div className="field">
-            <select value={type} onChange={(e) => onType(e.target.value)}>
-              {CHART_TYPES.map((c) => (
-                <option key={c.id} value={c.id}>{chartName(lang, c.id)}（{groupName(lang, c.gk)}）</option>
+            <select value={type} onChange={(e) => onType(e.target.value)} aria-label={t(lang, 'studio.s1')}>
+              {TYPE_GROUPS.map((g) => (
+                <optgroup key={g.gk} label={groupName(lang, g.gk)}>
+                  {g.items.map((c) => (
+                    <option key={c.id} value={c.id}>{chartName(lang, c.id)}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -193,9 +216,9 @@ export function Studio({ lang }: { lang: Lang }) {
           <div className="field">
             <label>{isFish ? t(lang, 'studio.jsonLabel') : t(lang, 'studio.dataLabel')}</label>
             {isFish ? (
-              <textarea value={fish} onChange={(e) => setFish(e.target.value)} style={{ minHeight: 200 }} />
+              <textarea value={fish} onChange={(e) => setFish(e.target.value)} placeholder={dataHint} style={{ minHeight: 200 }} />
             ) : (
-              <textarea value={csv} onChange={(e) => setCsv(e.target.value)} />
+              <textarea value={csv} onChange={(e) => setCsv(e.target.value)} placeholder={dataHint} />
             )}
             <div className="row" style={{ marginTop: 8 }}>
               <button className="btn btn-ghost" onClick={loadSample}>{t(lang, 'studio.loadSample')}</button>

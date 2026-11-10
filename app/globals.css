@@ -223,6 +223,21 @@ footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted)
 .chip { padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; font-size: 13px; transition: .15s; }
 .chip:hover { border-color: var(--accent); }
 .chip-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Gallery — 搜索与分类 */
+.gallery-toolbar { margin: 0 0 22px; }
+.gallery-searchrow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.gallery-search {
+  flex: 1; min-width: 0; padding: 11px 16px; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--ink); outline: none; transition: .15s;
+}
+.gallery-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px #eef3ff; }
+.gallery-count { flex: none; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.gallery-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.gallery-tabs .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; font-size: 12.5px; }
+.chip-num { opacity: .65; font-size: 11px; font-variant-numeric: tabular-nums; }
+.gallery-empty { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
 .f4p-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
 .f4p-card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
 .f4p-thumb { background: #f6f7f9; aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; padding: 10px; }
