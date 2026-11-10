@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
+import { SourceTracker } from '@/components/SourceTracker';
 import { getLang } from '@/lib/lang-server';
 import { SITE_URL, SITE_NAME, SITE_NAME_FULL } from '@/lib/site';
 
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       </head>
       <body>
+        <SourceTracker />
         <Nav lang={lang} />
         <main>{children}</main>
         <Footer lang={lang} />

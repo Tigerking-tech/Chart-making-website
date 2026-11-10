@@ -5,6 +5,7 @@ import { renderChart, SAMPLES, samplesFor, DEFAULT_TITLES, DEFAULT_TITLES_EN } f
 import { computeFor, type ToolInputs } from '@/lib/seoCalc';
 import { SEO_PAGES, type SeoPage, type Lang } from '@/lib/seoPages';
 import { encodeState } from '@/lib/shareState';
+import { passthroughQuery } from '@/lib/attribution';
 import { downloadSVG, downloadPNG } from '@/lib/engine/export/exporter.js';
 
 // —— 工具区固定文案（SEO 页专用，内联双语，不污染全局字典）——
@@ -116,7 +117,8 @@ export function SeoTool({ page, lang }: { page: SeoPage; lang: Lang }) {
   const ruleList = report ? (page.mode === 'rules-nelson' ? report.nelson : report.westernElectric) : [];
 
   function openStudio() {
-    const qs = typeof window !== 'undefined' ? window.location.search : '';
+    // 透传来源参数（只含 utm / sharecode，不含用户数据），让链路可追踪
+    const qs = passthroughQuery();
     const enc = encodeState({
       type: page.chartType || 'control',
       csv: isFish ? '' : data,

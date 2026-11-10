@@ -40,7 +40,7 @@ export function Footer({ lang }: { lang: Lang }) {
       <div className="container footer-bottom">
         <span>{t(lang, 'footer.tagline')}</span>
         <span className="footer-bottom-links">
-          <Link href="/tools">{zh ? '全部工具' : 'All tools'}</Link> · <Link href="/llms.txt">llms.txt</Link> · <Link href="/sitemap.xml">Sitemap</Link>
+          <Link href="/tools">{zh ? '全部工具' : 'All tools'}</Link> · <Link href="/llms.txt">llms.txt</Link> · <Link href="/traffic">{zh ? '来源归因' : 'Attribution'}</Link> · <Link href="/sitemap.xml">Sitemap</Link>
         </span>
       </div>
     </footer>
